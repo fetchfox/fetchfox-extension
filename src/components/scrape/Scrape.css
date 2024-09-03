@@ -1,0 +1,164 @@
+:root {
+  --main-color: #df6546;
+  --error-color: #e00;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 100%;;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  position: relative;
+  background-color: #282c34;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #fff8;
+  margin: 20px 0;
+}
+
+input {
+  border: 1px solid white;;
+  padding: 4px 8px;
+  border-radius: 2px;
+}
+
+input.error {
+  border: 1px solid var(--error-color);
+  outline: 1px solid var(--error-color);
+}
+
+table {
+  border-collapse: collapse;
+}
+
+table th {
+  background: #fff4;
+  position: sticky;
+}
+
+table, th, td {
+  borderx: 1px solid #ddd;
+  border-right: 1px solid #fff4;
+  padding: 2px 4px;
+}
+
+table tr:nth-child(even) td {
+  background: #fff1;
+}
+
+textarea.error {
+  border: 1px solid var(--error-color);
+}
+
+.clickable {
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.clickable:hover {
+  text-decoration: underline;
+}
+
+.error-message {
+  font-weight: bold;
+  color: var(--error-color);
+  background: #ebb;
+  padding: 5px;
+  border-radius: 2px;
+  margin-top: 5px;
+}
+
+.btn:active {
+  opacity: 0.7;
+}
+
+.btn {
+  cursor: pointer;
+  color: #ddd;
+  border: 0;
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  background: transparent;
+}
+
+.btn:hover {
+  color: #fff;
+}
+
+.btn.btn-active {
+  font-weightx: bold;
+  background: #0008;
+}
+
+.btn[disabled] {
+  cursor: auto;
+  opacity: 0.5;
+}
+
+.btn-sm {
+  font-weight: normal;
+  font-size: 12px;
+}
+
+.btn-md {
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+.btn-lg {
+  font-size: 18px;
+  padding: 10px 20px;
+}
+
+.btn-lg.btn-gray {
+  padding: 11px 21px;
+}
+
+.btn-primary {
+  border: 0;
+  background: var(--main-color);
+  color: white;
+}
+
+.btn-secondary {
+  border: 1px solid white;
+  background: white;
+  color: var(--main-color);
+}
+
+.btn-gray {
+  background: #0008;
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.fade-out {
+  animation: fadeOut 2s forwards;
+}
