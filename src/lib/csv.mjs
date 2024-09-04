@@ -9,16 +9,50 @@ export const downloadJobCsv = (job) => {
 
   const filename = 'FetchFox - ' + job.name;
   const csvConfig = mkConfig({ useKeysAsHeaders: true, filename });
-  const data = (job?.results?.targets || [])
-        .map(t => {
-          const r = {
-            URL: t.url,
-            'Link Text': t.text,
-            Status: t.status,
-          };
-          return Object.assign(r, t.answer);
-        });
-  console.log('data:', data);
-  const csv = generateCsv(csvConfig)(data);
+  const rows = toRows(job);
+  console.log('CSV rows:', rows);
+  const csv = generateCsv(csvConfig)(rows);
   download(csvConfig)(csv);
+}
+
+export const toRows = (job) => {
+  if (!job?.results?.targets) return [[]];
+
+  let answerHeaders;
+  if (job.results?.answerHeaders) {
+    answerHeaders = job.results?.answerHeaders;
+  } else {
+    const answerNames = {};
+    for (const target of job.results.targets) {
+      for (const key of Object.keys(target.answer || {})) {
+        answerNames[key] = true;
+      }
+    }
+    answerHeaders = Object.keys(answerNames);
+  }
+
+  const headers = [
+    'URL',
+    'Link Text',
+    'Status',
+    ...(answerHeaders),
+  ];
+
+  const rows = [headers];
+
+  for (const target of job.results.targets) {
+    const answer = target.answer || [{}];
+    for (const a of answer) {
+      const answerValues = answerHeaders.map(h => a[h]);
+      const row = [
+        target.url,
+        target.text,
+        target.status,
+        ...answerValues,
+      ];
+      rows.push(row);
+    }
+  }
+
+  return rows;
 }
