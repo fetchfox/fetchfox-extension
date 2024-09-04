@@ -63,7 +63,7 @@ export async function exec(name, args, cb) {
     setKey('tpm', rate);
     if (tpmTimeoutId) { clearTimeout(tpmTimeoutId); tpmTimeoutId = null; }
     tpmTimeoutId = setTimeout(() => setKey('tpm', null), 15000);
-    console.log('check rate limit gave', rate, 'limit:', observedRateLimit);
+    console.log('Check rate limit gave', rate, 'limit:', observedRateLimit);
 
     let hitRateLimit = false;
     let resp;
@@ -73,14 +73,6 @@ export async function exec(name, args, cb) {
     } catch(e) {
       console.error('AI error:' + e);
       console.log('AI error retries left:', retries);
-
-      // queryLog.push({
-      //   count: 0,
-      //   timestamp: Math.floor((new Date()).getTime() / 1000),
-      //   error: true,
-      // });
-      // const errorCount = queryLog.filter(q => q.error).length;
-      // console.log('errorCount', errorCount, plan);
 
       if (e.code == 'rate_limit_exceeded'
           && retries > 0) {
@@ -107,28 +99,22 @@ export async function exec(name, args, cb) {
     }
 
     if (hitRateLimit) {
-      console.log('check rate limit RETRY');
+      console.log('Check rate limit RETRY');
       setStatus('AI rate limit hit, slowing down...');
       retries--;
       continue;
     } else {
       answer = resp;
-      // slowly grow rate limit until we hit it again
+      // Slowly grow rate limit until we hit it again
       observedRateLimit *= 1.005;
       break;
     }
   }
 
-  console.log('ooo parsing:', answer);
-  const result = parseAnswer(answer);
-  console.log('ooo Returning clean AI resp', result);
-
-  return result;
+  return parseAnswer(answer);
 }
 
 export async function stream(prompt, cb) {
-  // throw 'test error';
-
   // Check for cached value
   const cachedResult = await readCache(prompt);
   if (cachedResult != undefined) {
@@ -140,13 +126,15 @@ export async function stream(prompt, cb) {
     apiKey: await getKey('openAiKey'),
     dangerouslyAllowBrowser: true,
   });
+
+  const model = await getModel();
+  console.log('Using model:', model);
+
   const stream = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model,
     messages: [{ role: 'user', content: prompt }],
     stream: true,
   });
-
-  console.log('AI gave stream:', stream);
 
   let result = ''
   for await (const chunk of stream) {
@@ -173,7 +161,7 @@ const checkRateLimit = async (prompt, plan) => {
     if ((total + count) / queryLogCutoff < observedRateLimit) break;
 
     setStatus('Waiting for AI rate limit...');
-    console.log('check rate limit WAITING');
+    console.log('Check rate limit WAITING');
 
     await sleep(3000);
   }
@@ -223,4 +211,49 @@ const parseAnswer = (text) => {
 
   // We don't know what it is, return null
   return null;
+}
+
+export const getAvailableModels = async () => {
+  const apiKey = await getKey('openAiKey');
+
+  if (!apiKey) {
+    return [];
+  }
+
+  const resp = await fetch(
+    'https://api.openai.com/v1/models',
+    { headers: {Authorization: 'Bearer ' + apiKey }});
+  const data = await resp.json();
+  const models = data.data.map(m => m.id)
+        .sort((a, b) => {
+          if (a == 'gpt-4o') return -1;
+          if (b == 'gpt-4o') return 1;
+
+          const [ma, mb] = [
+            a.match(/gpt-([0-9]+)/),
+            b.match(/gpt-([0-9]+)/)];
+
+          if (ma && !mb) return -1;
+          if (!ma && mb) return 1;
+          if (!ma && !mb) return b.localeCompare(a);
+          return parseInt(mb[1]) - parseInt(ma[1]);
+        });
+
+  console.log('Available models:', models);
+
+  return models
+}
+
+export const getModel = async () => {
+  const model = await getKey('model');
+
+  if (model) {
+    return model;
+  }
+
+  const models = await getAvailableModels();
+  const use = models[0];
+  console.log('Setting model:', use);
+  setKey('model', use);
+  return use;
 }

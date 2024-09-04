@@ -878,6 +878,7 @@ const Welcome = ({ onStart, onSkip }) => {
       <div style={{ position: 'relative',
                     width: '100%',
                     marginTop: 8,
+                    opacity: loading ? 0.5 : 1,
                   }}>
         <div style={{ position: 'absolute',
                       right: 2,
@@ -919,7 +920,6 @@ const Welcome = ({ onStart, onSkip }) => {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={loading}
             placeholder={'Example: "Look for links to articles, and on each article page, find the author, the publication date, and summarize it in 2-10 words."'}
           />
         </div>

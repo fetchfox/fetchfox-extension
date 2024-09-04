@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useState } from 'react';
+import { getModel, getAvailableModels } from '../lib/ai.mjs';
 
 export const useOpenAiKey = () => {
   const [key, setKey] = useState();
@@ -20,4 +21,17 @@ export const useOpenAiKey = () => {
   }, []);
 
   return { key, plan, loading };
+}
+
+export const useOpenAiModels = () => {
+  const [model, setModel] = useState();
+  const [available, setAvailable] = useState([]);
+  const openai = useOpenAiKey();
+
+  useEffect(() => {
+    getAvailableModels().then(setAvailable);
+    getModel().then(setModel);
+  }, [openai.key]);
+
+  return { model, available };
 }

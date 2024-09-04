@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useOpenAiKey } from '../../state/openai';
+import { useOpenAiKey, useOpenAiModels } from '../../state/openai';
 import { setKey } from '../../lib/store.mjs';
 import { Error } from '../common/Error';
 import { FoxSays } from '../fox/FoxSays';
@@ -15,27 +15,31 @@ import { mainColor } from '../../lib/constants.mjs';
 
 export const OpenAiKeyEntry = ({ onDone, doneText }) => {
   const { key: openAiKey, plan: openAiPlan } = useOpenAiKey();
-  const [apiKey, setApiKey] = useState(openAiKey);
+  const models = useOpenAiModels();
+  const [apiKey, setApiKey] = useState();
+  const [modelName, setModelName] = useState(models.model);
   const [error, setError] = useState();
   const [success, setSuccess] = useState(false);
   const [disabled, setDisabled] = useState(true);
 
   useEffect(() => {
-    console.log('change detected:', openAiKey, openAiPlan);
     setDisabled(!openAiPlan || (openAiPlan == 'openai' && !openAiKey));
   }, [openAiKey, openAiPlan]);
-
-  console.log('openAiKey', openAiKey);
 
   useEffect(() => {
     setApiKey(openAiKey);
   }, [openAiKey]);
+
+  useEffect(() => {
+    setModelName(models.model);
+  }, [models.model]);
 
   const handleOpenAi = (e) => {
     e.preventDefault();
     setError(null);
     setKey('openAiPlan', 'openai');
     setKey('openAiKey', apiKey);
+    setKey('model', modelName);
     setTimeout(() => setSuccess(false), 3000);
   }
 
@@ -50,6 +54,11 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
     setError(null);
     setApiKey(e.target.value);
     setKey('openAiKey', e.target.value);
+  }
+
+  const handleChangeModel = (e) => {
+    setModelName(e.target.value);
+    setKey('model', e.target.value);
   }
 
   const handleDone = () => {
@@ -83,6 +92,20 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
     fontSize: 24,
     fontWeight: 'bold',
   };
+
+  const pickModelNode = (
+    <div>
+      <div style={{ fontSize: 14, fontWeight: 'bold', margin: '10px 0' }}>Pick a model</div>
+      <select value={modelName} onChange={handleChangeModel}>
+        {models.available.map(a => (
+          <option key={a} value={a}>
+            {a}
+            {a == models.available[0] && <span> (recommended)</span>}
+          </option>)
+         )}
+      </select>
+    </div>
+  )
 
   return (
     <div>
@@ -122,6 +145,8 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
                 value={apiKey}
                 onChange={handleChange}
                 placeholder="sk-proj-..." />
+
+              {models.available.length > 0 && pickModelNode}
 
               <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <button
