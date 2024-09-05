@@ -66,7 +66,7 @@ export const scrapePage = async (
     const a = await exec(
       'scrape',
       context,
-      (partial) => {
+      async (partial) => {
         if (cb && partial && partial.length > prevLength) {
           if (!await isActive(roundId)) return answer;
           cb(existing.concat(partial.slice(1)));
