@@ -10,8 +10,14 @@ export const shuffle = (a) => {
   return a;
 }
 
-export const formatNumber = (number) => {
-  return ('' + number).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+export const formatNumber = (number, abbrev) => {
+  if (abbrev && number >= 1000000) {
+    return formatNumber(Math.round(number / 100000) / 10, false) + 'M';
+  } else if (abbrev && number >= 1000) {
+    return formatNumber(Math.round(number / 1000), false) + 'k';
+  } else {
+    return ('' + number).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
 }
 
 export const splitUrls = (str) => {
@@ -22,7 +28,7 @@ export const splitUrls = (str) => {
 
 export const parseJsonl = (str) => {
   const lines = str.split('\n');
-  console.log('parseJsonl', lines);
+  // console.log('parseJsonl', lines);
   const result = [];
   for (const line of lines) {
     try {
@@ -33,3 +39,4 @@ export const parseJsonl = (str) => {
   }
   return result;
 }
+

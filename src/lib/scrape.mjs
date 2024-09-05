@@ -105,11 +105,10 @@ export const scrapePage = async (page, questions, extraRules, cb) => {
         count: '',
       },
       (partial) => {
-        console.log('Scrape.mjs got partial:', partial);
         if (cb && partial && partial.length > 1) cb(partial.slice(1));
       });
 
-    console.log('ooo scrape answer:', answer);
+    console.log('Scrape answer:', answer);
     answer = answer ? answer.slice(1) : [];
   }
 

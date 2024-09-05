@@ -1,5 +1,7 @@
 import { useMemo, useEffect, useState } from 'react';
 import { getModel, getAvailableModels } from '../lib/ai.mjs';
+import { getKey } from '../lib/store.mjs';
+import { useRoundId } from '../lib/controller.mjs';
 
 export const useOpenAiKey = () => {
   const [key, setKey] = useState();
@@ -34,4 +36,26 @@ export const useOpenAiModels = () => {
   }, [openai.key]);
 
   return { model, available };
+}
+
+export const useUsage = () => {
+  const roundId = useRoundId();
+  const [usage, setUsage] = useState({});
+
+  const update = (changes) => {
+    const key = 'roundUsage_' + roundId;
+    if (changes[key]) {
+      setUsage(changes[key].newValue);
+    }
+  };
+
+  useEffect(() => {
+    if (!roundId) return;
+    const key = 'roundUsage_' + roundId;
+    getKey(key).then(u => setUsage(u || {}));
+    chrome.storage.onChanged.addListener(update);
+    return () => chrome.storage.onChanged.removeListener(update);
+  }, [roundId]);
+
+  return usage;
 }

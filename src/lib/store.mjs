@@ -33,20 +33,20 @@ const lockedUpdate = async (fn) => {
 }
 
 const lockedJobUpdate = async (jobId, fn) => {
-  console.log('uuu start locked update', jobId);
+  console.log('Start locked update', jobId);
 
   await initSt();
   await lock();
-  console.log('uuu got LOCK', jobId);
+  console.log('Got LOCK', jobId);
 
   try {
     const job = await getJob(jobId);
     const updated = await fn(job);
-    console.log('uuu updated is:', updated);
+    console.log('updated is:', updated);
     const result = await saveJob(job)
     return result;
   } finally {
-    console.log('uuu UNLOCK', jobId);
+    console.log('UNLOCK', jobId);
     unlock();
   }
 }
@@ -200,7 +200,7 @@ export const setScrapeStatus = async (jobId, roundId, urls, val) => {
 }
 
 export const clearJobResults = async (jobId) => {
-  console.log('uuu clearJobResults locked update');
+  console.log('clearJobResults locked update');
   return lockedJobUpdate(
     jobId,
     (job) => {
@@ -219,7 +219,7 @@ export const addUrlsToJob = async (jobId, urls, clearMissing) => {
 }
 
 export const removeUrlsFromJob = async (jobId, rmUrls) => {
-  console.log('uuu removeUrlsFromJob locked update');
+  console.log('removeUrlsFromJob locked update');
   return lockedJobUpdate(
     jobId,
     (job) => {
@@ -241,12 +241,12 @@ export const removeUrlsFromJob = async (jobId, rmUrls) => {
 }
 
 export const setJobResults = async (jobId, { targets, answers }, clearMissing) => {
-  console.log('uuu setJobResults locked update');
+  console.log('setJobResults locked update');
 
   return lockedJobUpdate(
     jobId,
     (job) => {
-      console.log('jjj setting job results', jobId, job);
+      console.log('setting job results', jobId, job);
 
       if (!job.results) job.results = {};
 

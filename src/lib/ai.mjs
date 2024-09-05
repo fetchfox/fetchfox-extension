@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 import { apiHost } from './constants.mjs';
 import { setKey, getKey, setStatus } from './store.mjs';
 import { readCache, writeCache } from './cache.mjs';
+import { getRoundId } from './controller.mjs';
 import { setGlobalError } from './errors.mjs';
 import { getTemplate } from './templates.mjs';
 import { sleep, parseJsonl } from './util.mjs';
@@ -39,7 +40,11 @@ export async function exec(name, args, cb) {
       if (data.error) {
         throw data.error;
       }
-      return data.answer;
+
+      return {
+        answer: data.answer,
+        usage: data.usage,
+      }
     }
 
   } else {
@@ -48,11 +53,12 @@ export async function exec(name, args, cb) {
     // Run via user's API key
     askAI = async (name, args) => {
       const prompt = render(name, args);
-      console.log('sending prompt to openai:', prompt);
+      console.log('Sending prompt to openai:', prompt);
       const resp = await stream(
         prompt,
         (text) => cb && cb(parseAnswer(text)));
-      return resp[0];
+
+      return { answer: resp.result, usage: resp.usage };
     }
   }
 
@@ -104,7 +110,8 @@ export async function exec(name, args, cb) {
       retries--;
       continue;
     } else {
-      answer = resp;
+      answer = resp.answer;
+      await addUsage(resp.usage);
       // Slowly grow rate limit until we hit it again
       observedRateLimit *= 1.005;
       break;
@@ -134,17 +141,27 @@ export async function stream(prompt, cb) {
     model,
     messages: [{ role: 'user', content: prompt }],
     stream: true,
+    stream_options: { include_usage: true },
   });
 
-  let result = ''
+  let result = '';
+  let usage;
   for await (const chunk of stream) {
-    const delta = chunk.choices[0].delta.content;
-    if (delta) result += delta;
-    cb && cb(result);
+    if (chunk.usage) {
+      usage = chunk.usage;
+    }
+
+    if (chunk.choices?.length) {
+      const delta = chunk.choices[0].delta.content;
+      if (delta) result += delta;
+      cb && cb(result);
+    }
   }
 
   console.log('AI gave result:', result);
-  return [result, false];
+  console.log('AI gave stream:', stream)
+
+  return { result, usage };
 }
 
 const checkRateLimit = async (prompt, plan) => {
@@ -256,4 +273,18 @@ export const getModel = async () => {
   console.log('Setting model:', use);
   setKey('model', use);
   return use;
+}
+
+const addUsage = async (usage) => {
+  const roundId = await getRoundId();
+  const key = 'roundUsage_' + roundId;
+  console.log('Set usage for:', key);
+  const current = await getKey(key) || { prompt: 0, completion: 0, total: 0 };
+  console.log('Got previous usage:', current);
+  console.log('Adding new usage:', usage);
+  current.prompt += usage.prompt_tokens;
+  current.completion += usage.completion_tokens;
+  current.total += usage.total_tokens;
+  console.log('Setting new usage', key, current);
+  return setKey(key, current);
 }

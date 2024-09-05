@@ -24,7 +24,6 @@ export const useRoundId = () => {
 export const getRoundId = async () => {
   return chrome.storage.local.get('roundId').
     then(r => {
-      console.log('round result', r);
       return r['roundId'] || 1;
     });
 }
@@ -35,12 +34,9 @@ export const isActive = async (r) => {
 
 export const addListener = async (f) => {
   if (listeners.includes(f)) {
-    console.log('stop have it', f);
     return;
   }
-  console.log('stop push');
   listeners.push(f);
-  console.log('stop push ->', listeners);
 }
 
 export const removeListener = async (f) => {
@@ -50,15 +46,11 @@ export const removeListener = async (f) => {
 }
 
 export const runStopListeners = () => {
-  console.log('stop runStopListeners START', listeners);
   listeners.map(l => { l() });
   listeners = [];
-  console.log('stop runStopListeners DONE');
 }
 
 export const advanceRound = async () => {
-  console.log('stop advanceRound', listeners);
-
   const roundId = await getRoundId();
 
   const changes = {

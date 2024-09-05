@@ -56,7 +56,7 @@ import {
   useJob,
   useActiveJob,
 } from '../../state/jobs';
-import { useOpenAiKey } from '../../state/openai';
+import { useOpenAiKey, useUsage } from '../../state/openai';
 import { Loading } from '../common/Loading';
 import { Checkbox } from '../common/Checkbox';
 import { Pills } from '../common/Pills';
@@ -122,29 +122,30 @@ const openPanel = async () => {
 const StatusBar = ({ onRun }) => {
   const [message, setMessage] = useState('');
   const [percent, setPercent] = useState();
-  const [tpm, setTPM] = useState();
+  const [tpm, setTpm] = useState();
   const [inFlight, setInFlight] = useState(0);
   const [loading, setLoading] = useState();
   const [statusHeight, setStatusHeight] = useState(0);
   const roundId = useRoundId(0);
+  const usage = useUsage();
+
+  console.log('Status bar usage:', usage);
 
   useEffect(() => {
     chrome.storage.local.get()
       .then(st => {
         if (st.status) setMessage(st.status.message);
         if (st.percent) setPercent(st.percent);
-        if (st.tpm) setTPM(st.tpm);
+        if (st.tpm) setTpm(st.tpm);
         if (st.inFlight) setInFlight(st.inFlight);
       });
   }, []);
 
   useEffect(() => {
     const handle = (changes, area) => {
-      if (changes.percent) console.log('changes:', changes);
-
       if (changes.status) setMessage(changes.status.newValue.message);
       if (changes.percent) setPercent(changes.percent.newValue);
-      if (changes.tpm) setTPM(changes.tpm.newValue);
+      if (changes.tpm) setTpm(changes.tpm.newValue);
       if (changes.inFlight) setInFlight(changes.inFlight.newValue);
     };
 
@@ -218,7 +219,7 @@ const StatusBar = ({ onRun }) => {
                     width: 'calc(100% - 10px)',
                     paddingRight: 30,
                     marginLeft: 10 }}>
-        {Math.round(100*percent)}%{tpm && <span> ({formatNumber(tpm)} tpm) </span>}{' '}
+        {Math.round(100*percent)}%{tpm && <span> ({formatNumber(tpm, true)} tpm, {formatNumber(usage.total || 0, true)}) </span>}{' '}
         - {inFlight > 0 ? (' ' + message) : ''}
       </div>
     </div>
@@ -676,8 +677,6 @@ const Results = ({ job, targets, onScrape, onRemove }) => {
     for (let tIndex = 0; tIndex < targets.length; tIndex++) {
       const target = targets[tIndex];
 
-      console.log('ppp render target', target);
-
       // The first row
       const num = (target.answer || []).length;
       const rowSpan = num || 1
@@ -715,9 +714,7 @@ const Results = ({ job, targets, onScrape, onRemove }) => {
         );
         cells.push(<td key="key" rowSpanx={rowSpan} style={{ width: 180, overflow: 'hidden' }}>{target.text}</td>);
 
-        console.log('ppp render answer', answer);
         for (const header of headers) {
-          console.log('ppp cell push', header);
           cells.push(<td key={header} style={answerStyle}>{answer[header]}</td>);
         }
 
@@ -986,7 +983,7 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
   const { key: openAiKey, plan: openAiPlan, loading: loadingOpenAiKey } = useOpenAiKey('loading');
   const job = useActiveJob();
 
-  console.log('Inner is using active job:', job);
+  console.log('Active job:', job);
 
   const handleScrape = async (urls) => {
     return runScrape(job, urls);
@@ -1139,8 +1136,6 @@ export const Scrape = ({ isPopup }) => {
   const [step, setStep] = useState();
 
   const activeJob =  useActiveJob();
-
-  console.log('init??');
 
   useEffect(() => {
     if (loadingOpenAiKey) return;
