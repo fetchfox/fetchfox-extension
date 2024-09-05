@@ -4,7 +4,14 @@ import { setStatus } from './store.mjs';
 import { getRoundId, isActive } from './controller.mjs';
 import { scrapeTemplate } from './templates.mjs';
 
-export const scrapePage = async (page, questions, extraRules, cb) => {
+export const scrapePage = async (
+  page,
+  questions,
+  itemDescription,
+  extraRules,
+  cb) =>
+{
+
   const roundId = await getRoundId();
   if (!await isActive(roundId)) return;
 
@@ -18,103 +25,89 @@ export const scrapePage = async (page, questions, extraRules, cb) => {
     return result;
   };
 
-  console.log('scrape page:', page);
-  console.log('new prompt');
 
   const clip = 180000;
   const len = page.text.length + page.html.length;
 
-  let answer = {};
+  console.log('clip should we clip?', len, clip);
+  console.log('clip len text', page.text.length);
+  console.log('clip len html', page.html.length);
 
-  if (false && len > clip) {
-    console.log('clip len text', page.text.length);
-    console.log('clip len html', page.html.length);
+  const scrapeInner = async (offset, existing, cb) => {
+    const textChunkSize =  50000;
+    const htmlChunkSize = 120000;
 
-    const keyMissing = (a, key) => !a[key] || a[key] == '(not found)';
-    const countMissing = (a) => {
-      return Object.keys(a)
-          .filter(key => keyMissing(a, key))
-          .length;
-    };
+    const text = page.text.slice(
+      offset * textChunkSize,
+      (offset + 1) * textChunkSize);
 
-    const maxIterations = 3;
-    let iterations = 0;
+    const html = page.html.slice(
+      offset * htmlChunkSize,
+      (offset + 1) * htmlChunkSize);
 
     const context = {
       url: page.url,
       questions: JSON.stringify(translateToHeaders(questions), null, 2),
-      text: '(not available)',
-      html: '(not available)',
+      text,
+      html,
       extraRules,
-      count: clip,
+      count: '',
     };
 
-    for (let field of ['text', 'html']) {
-      const val = '' + page[field];
-
-      for (let i = 0; i < maxIterations && i * clip < val.length; i++) {
-        if (!await isActive(roundId)) return;
-
-        const delta = {};
-        delta[field] = val.slice(i * clip, (i+1) * clip);
-        console.log('clip sending delta', delta);
-        iterations++;
-        const partial = await exec('scrape', Object.assign({}, context, delta));
-        console.log('clip got partial', partial);
-
-        if (!partial) {
-        console.log('clip got null partial', partial);
-          continue;
-        }
-
-        for (const key of Object.keys(partial)) {
-          if (answer[key] &&
-              answer[key] != '(not found)' &&
-              answer[key] != partial[key]) {
-            console.warn(
-              'Batching scrape gave conflicting answers:',
-              key, answer[key], partial[key]);
-          }
-
-          // if (!answer[key] || answer[key] == '(not found)') {
-          if (keyMissing(answer, key)) {
-            answer[key] = partial[key];
-          }
-        }
-        console.log('clip so far:', i, field, answer);
-        console.log('clip missing:', countMissing(answer), answer);
-
-        if (!countMissing(answer)) break;
-      }
-
-      if (!countMissing(answer)) break;
+    if (itemDescription) {
+      context.itemDescription = (
+        'You are looking for this type of item(s):\n\n' +
+        itemDescription);
     }
-    console.log('clip done, got:', answer);
-    console.log(
-      'clip made this many queries:', iterations,
-      'still missing:', countMissing(answer));
-  } else {
-    answer = await exec(
+
+    console.log('manual scrape sending context', context);
+
+    let prevLength = 1;  // set it to 1 to ignore itemCount row
+    const a = await exec(
       'scrape',
-      {
-        url: page.url,
-        questions: JSON.stringify(translateToHeaders(questions), null, 2),
-        text: page.text.slice(0,  50000),
-        html: page.html.slice(0, 120000),
-        extraRules,
-        count: '',
-      },
+      context,
       (partial) => {
-        if (cb && partial && partial.length > 1) cb(partial.slice(1));
+        if (cb && partial && partial.length > prevLength) {
+          if (!await isActive(roundId)) return answer;
+          cb(existing.concat(partial.slice(1)));
+          prevLength = partial.length;
+        }
       });
 
-    console.log('Scrape answer:', answer);
-    answer = answer ? answer.slice(1) : [];
+    const ensureArray = (x) => {
+      if (!x) return [];
+      if (!Array.isArray(x)) return [x];
+      return x;
+    }
+
+    console.log('Scrape answer:', a);
+    return {
+      answer: ensureArray(a)
+        .filter(i => i.itemCount == undefined ||
+                Object.keys(i).length > 1),
+      more: (page.text.length > (offset + 1) * textChunkSize ||
+             page.html.length > (offset + 1) * htmlChunkSize),
+    };
   }
 
-  answer = answer || [];
+  let answer = [];
+  let offset = 0;
 
-  if (!await isActive(roundId)) return answer;
+  // max 3 iterations
+  for (let i = 0; i < 3; i++) {
+    console.log('clip iteration', offset);
+    const result = await scrapeInner(offset++, answer, cb);
+
+    console.log('clip scrape inner gave:', result.answer);
+    console.log('clip is there more?', result.more);
+
+    if (!await isActive(roundId)) return answer;
+    answer = answer.concat(result.answer);
+
+    console.log('clip combined answer:', answer);
+
+    if (!result.more) break;
+  }
 
   setStatus('AI: ' + JSON.stringify(answer));
   return answer;

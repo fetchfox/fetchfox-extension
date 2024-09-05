@@ -196,6 +196,10 @@ const runScrape = async (job, urls, percentAdd) => {
     ? 'Important: For this scrape, ONLY find exactly 1 item. So itemCount will always be 1, and you will return only 1 result after that.'
     : '');
 
+  const itemDescription = (job.urls.action == 'manual'
+    ? job.urls.question
+    : '');
+
   const fn = async (url, index, cb) => {
     console.log('bg runscrape got url', next, url);
     await setScrapeStatus(job.id, roundId, [url], 'scraping');
@@ -226,7 +230,18 @@ const runScrape = async (job, urls, percentAdd) => {
 
     if (!await isActive(roundId)) return [null, null, null];
     console.log('bg runscrape scraping', url);
-    const result = await scrapePage(page, job.scrape.questions, extraRules, cb);
+    let result;
+    try {
+      result = await scrapePage(
+        page,
+        job.scrape.questions,
+        itemDescription,
+        extraRules,
+        cb);
+    } catch(e)  {
+      console.error('scrapePage gave error:', e);
+      throw e;
+    }
     console.log('bg runscrape scraped', url, result);
 
     if (!await isActive(roundId)) return [null, null, null];

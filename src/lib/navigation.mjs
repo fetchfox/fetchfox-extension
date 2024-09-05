@@ -6,12 +6,6 @@ export const getPageData = async (url, active, onCreate) => {
   let tab;
 
   const tabWithUrl = await getTabWithUrl(url);
-
-  // const activeTab = await getActiveTab();
-  // console.log('getPageData tabWithUrl', tabWithUrl);
-  // console.log('getPageData activeTab', activeTab);
-  // console.log('getPageData urls', activeTab.url == url, activeTab.url, url);
-
   if (tabWithUrl) {
     return getTabData(tabWithUrl.id, false);
   }
@@ -114,7 +108,7 @@ export const getTabData = async (tabId, shouldClose) => {
             new Promise((ok) =>
               setTimeout(() => {
                 console.log('===> TIMEOUT', window.location.href);
-                ok();
+                ok({ error: 'timeout' });
               }, 15*1000)),
 
             new Promise(async (ok) => {
@@ -153,9 +147,8 @@ export const getTabData = async (tabId, shouldClose) => {
               }
 
               const url = window.location.href;
-              const text = getText(document.body); //document.body.innerText;
-              //const html = getHtml(document.documentElement); //document.documentElement.innerHTML;
-              const html = document.documentElement.innerHTML;
+              const text = getText(document.body) || '';
+              const html = document.documentElement.innerHTML || '';
 
               console.log('check for redir', text);
 
@@ -216,15 +209,15 @@ export const getTabData = async (tabId, shouldClose) => {
     try { await chrome.tabs.remove(tabId) } catch(e) {}
   }
 
-  if (!results) return {};
+  if (!results) return { error: 'no result' };
 
-  console.log('mmm getting result from', results);
+  console.log('Getting result from', results);
 
   const result = results[0].result;
-  console.log('mmm SUCCESS!', result);
+  console.log('Success', result);
 
   if (result.redir) {
-    console.log('===> hhh handle redir', result.redir);
+    console.log('Handle redir', result.redir);
     return getPageData(result.redir);
   } else {
     return result;

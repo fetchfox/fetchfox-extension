@@ -12,6 +12,7 @@ import { IoPlayCircle, IoCloseCircle } from 'react-icons/io5';
 import {
   TbLayoutBottombarExpandFilled,
   TbLayoutBottombarCollapseFilled,
+  TbFileArrowRight,
 } from 'react-icons/tb';
 import { TiDelete } from 'react-icons/ti';
 import {
@@ -31,8 +32,8 @@ import {
 } from 'react-icons/fi';
 import { HiArrowsExpand } from 'react-icons/hi';
 import { runJob, runGather, runScrape, sendStopMessage } from '../../lib/job.mjs';
-import { genJob, genBlankJob } from '../../lib/gen.mjs';
-import { formatNumber } from '../../lib/util.mjs';
+import { genJob, genBlankJob, genJobFromUrls } from '../../lib/gen.mjs';
+import { formatNumber, getJobColumn } from '../../lib/util.mjs';
 import { getActiveTab, getTabData } from '../../lib/navigation.mjs';
 import {
   getKey,
@@ -258,11 +259,15 @@ const UrlsStep = ({ job, isPopup }) => {
   useEffect(() => {
     getActiveTab()
       .then((activeTab) => {
-        const e = activeTab.url != url;
-        console.log('jjj current?', activeTab.url, url, e);
-        setShowCurrentButton(e);
+        if (action == 'gather') {
+          const exists = !((url || '').split('\n').includes(activeTab.url));
+          setShowCurrentButton(exists);
+        } else if (action == 'manual') {
+          const exists = !((manualUrls || '').split('\n').includes(activeTab.url));
+          setShowCurrentButton(exists);
+        }
       });
-  }, [url]);
+  }, [url, action, manualUrls]);
 
   const numResults = (job?.results?.targets || []).length;
   const currentStep = numResults == 0 ? 1 : 2;
@@ -322,20 +327,13 @@ const UrlsStep = ({ job, isPopup }) => {
   const handleCurrent = async () => {
     const activeTab = await getActiveTab();
     if (activeTab) {
-      updateUrl(activeTab.url);
-    }
-  };
-
-  const handleCurrentManual = async () => {
-    const activeTab = await getActiveTab();
-    if (activeTab) {
-      let base = '';
-      if (manualUrls?.trim()) {
-        base = manualUrls.trim() + '\n';
+      if (action == 'gather') {
+        updateUrl(activeTab.url + '\n' + url);
+      } else if (action == 'manual') {
+        updateManualUrls(activeTab.url + '\n' + manualUrls);
       }
-      updateManualUrls(base + activeTab.url);
     }
-  };
+  }
 
   const handleClick = async () => {
     const activeTab = await getActiveTab();
@@ -359,34 +357,8 @@ const UrlsStep = ({ job, isPopup }) => {
     }
   }
 
-  const gatherNode = (
+  const questionNode = (
     <div>
-      <p>Where should we start crawling? (one URL per row)</p>
-      <div style={{ position: 'relative' }}>
-        <div style={{ position: 'absolute', right: 3, top: 3 }}>
-          {showCurrentButton && <button
-            className="btn btn-gray"
-            style={{ color: 'white', padding: '2px 6px' }}
-            onClick={handleCurrent}
-            >
-            Current
-          </button>}
-        </div>
-
-        <Textarea
-          style={{ width: '100%',
-                   fontFamily: 'sans-serif',
-                   resize: 'none',
-                   padding: '4px 8px',
-                   border: 0,
-                   borderRadius: 2,
-                 }}
-          placeholder={'https://example.com/category/page/1\nhttps://example.com/category/page/2\n...'}
-          value={url}
-          onChange={(e) => updateUrl(e.target.value)}
-          type="text" />
-      </div>
-
       <p>What kinds of items should we look for?</p>
       <Textarea
         style={{ width: '100%',
@@ -399,6 +371,46 @@ const UrlsStep = ({ job, isPopup }) => {
         placeholder="Look for links to product pages"
         value={question}
         onChange={(e) => updateQuestion(e.target.value)} />
+    </div>
+  );
+
+  const currentButtonNode = (
+    <div style={{ position: 'absolute', right: 3, top: 3 }}>
+      <button
+        className="btn btn-gray"
+        style={{ display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 padding: '2px 8px',
+               }}
+        onClick={handleCurrent}
+        >
+        <FiPlus size={12} />&nbsp;Current
+      </button>
+    </div>
+  )
+
+  const gatherNode = (
+    <div>
+      <p>Where should we start crawling? (one URL per row)</p>
+      <div style={{ position: 'relative' }}>
+        {showCurrentButton && currentButtonNode}
+        <textarea
+          style={{ width: '100%',
+                   minHeight: 80,
+                   fontFamily: 'sans-serif',
+                   resize: 'none',
+                   padding: '4px 8px',
+                   border: 0,
+                   borderRadius: 2,
+                 }}
+          placeholder={'https://example.com/category/page/1\nhttps://example.com/category/page/2\n...'}
+          value={url}
+          onChange={(e) => updateUrl(e.target.value)}
+          type="text" />
+      </div>
+
+      {questionNode}
 
       <div style={{ marginTop: 10 }}>
         <button
@@ -409,49 +421,36 @@ const UrlsStep = ({ job, isPopup }) => {
           Run Only Crawl
         </button>
       </div>
-
-      {/*
-      <div style={{ opacity: numResults == 0 ? 0.5 : 1, marginTop: 10 }}>
-        <Checkbox
-          checked={shouldClear}
-          disabled={numResults == 0}
-          onClick={() => updateShouldClear(!shouldClear)}
-          >
-          Clear {numResults} existing {numResults == 1 ? 'result' : 'results'}
-        </Checkbox>
-      </div>
-      */}
-
     </div>
   );
 
   const manualNode = (
     <div>
       <p>Enter a list of URLs to scrape (one per row)</p>
-      <textarea
-        style={{ width: '100%',
-                 fontFamily: 'sans-serif',
-                 padding: '4px 8px',
-                 border: 0,
-                 borderRadius: 2,
-                 minHeight: 80,
-                 marginBottom: 2,
-               }}
-        className={manualError ? 'error' : ''}
-        placeholder={`https://www.example.com/page-1
+      <div style={{ position: 'relative' }}>
+        {showCurrentButton && currentButtonNode}
+        <textarea
+          style={{ width: '100%',
+                   minHeight: 80,
+                   fontFamily: 'sans-serif',
+                   padding: '4px 8px',
+                   border: 0,
+                   borderRadius: 2,
+                   marginBottom: 2,
+                 }}
+          className={manualError ? 'error' : ''}
+          placeholder={`https://www.example.com/page-1
 https://www.example.com/page-2
 ...`}
-        onChange={(e) => updateManualUrls(e.target.value)}
-        value={manualUrls}
-      />
-      <div
-        className="btn btn-gray"
-        style={{ display: 'flex', alignItems: 'center', width: 92, justifyContent: 'center'}}
-        onClick={handleCurrentManual}
-        >
-        <FiPlus size={14} />&nbsp;Current
+          onChange={(e) => updateManualUrls(e.target.value)}
+          value={manualUrls}
+        />
       </div>
+
+      {questionNode}
+
       <Error message={manualError} />
+
     </div>
   );
 
@@ -632,10 +631,18 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
   );
 }
 
+const Results = ({
+  job,
+  targets,
+  onScrape,
+  onRemove,
+  onNewJobFromUrls }) => {
 
-const Results = ({ job, targets, onScrape, onRemove }) => {
-  // const headers = (job?.results?.answerHeaders || [])
+  const [highlight,
+setHighlight] = useState();
+
   const headers = (job?.results?.answerHeaders || []);
+  const types = (job?.results?.types || {});
 
   const urlStyle = {
     width: 200,
@@ -651,6 +658,32 @@ const Results = ({ job, targets, onScrape, onRemove }) => {
     overflowWrap: 'break-word',
   };
 
+  const highlightStyle = {
+    backgroundColor: '#fff1',
+  };
+
+  const handleNewScrape = (header) => {
+    if (!confirm('Start a new scrape using column "' + header + '"?')) return;
+    onNewJobFromUrls(getJobColumn(job, header));
+  }
+
+  const newScrapeNode = (header) => {
+    return (
+      <div style={{ whiteSpace: 'nowrap', margin: '4px 0' }}>
+        <button
+          onMouseEnter={() => setHighlight(header)}
+          onMouseLeave={() => setHighlight(null)}
+          onClick={() => handleNewScrape(header)}
+          className="btn btn-gray"
+          >
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 5}}>
+            Scrape These <TbFileArrowRight size={14} />
+          </div>
+        </button>
+      </div>
+    )
+  }
+
   let i = 0;
   let headerNodes = [];
   headerNodes.push(<th key="action"></th>);
@@ -658,8 +691,12 @@ const Results = ({ job, targets, onScrape, onRemove }) => {
   headerNodes.push(<th key="url" style={urlStyle}>URL</th>);
   headerNodes.push(<th key="text">Link Text</th>);
   headerNodes = headerNodes.concat(
-    headers.map(header => <th key={header} style={answerStyle}>{header}</th>)
-  );
+    headers.map(header => (
+      <th key={header} style={answerStyle}>
+        {header}
+        {types[header] == 'url' && newScrapeNode(header)}
+      </th>)
+    ));
 
   let rows;
   if (!targets || !targets.length) {
@@ -673,7 +710,6 @@ const Results = ({ job, targets, onScrape, onRemove }) => {
 
     rows = [];
 
-    // for (const target of targets) {
     for (let tIndex = 0; tIndex < targets.length; tIndex++) {
       const target = targets[tIndex];
 
@@ -708,36 +744,34 @@ const Results = ({ job, targets, onScrape, onRemove }) => {
       let count = 0;
       for (const answer of (target.answer || [{}])) {
         cells.push(
-          <td key="url" rowSpanx={rowSpan} style={urlStyle}>
+          <td key="url" style={urlStyle}>
             {target.url}
-          </td>
-        );
-        cells.push(<td key="key" rowSpanx={rowSpan} style={{ width: 180, overflow: 'hidden' }}>{target.text}</td>);
+          </td>);
+        cells.push(
+          <td key="linktext" style={{ width: 180, overflow: 'hidden' }}>
+            {target.text}
+          </td>);
 
         for (const header of headers) {
-          cells.push(<td key={header} style={answerStyle}>{answer[header]}</td>);
+          cells.push(
+            <td
+              key={header}
+              style={{ ...answerStyle,
+                       ...(highlight == header ? highlightStyle : {})
+                     }}
+              >
+              {answer[header]}
+            </td>);
         }
 
         rows.push(
-          <tr style={{ verticalAlign: 'top' }} key={i++}>
+          <tr key={i++} style={{ verticalAlign: 'top' }}>
             {cells}
-          </tr>
-        );
+          </tr>);
+
         cells = [];
       }
     }
-
-    // rows = targets.map(target => {
-    //   for (let header of headers) {
-    //     if (target.answer) {
-    //       cells.push(<td key={header} style={answerStyle}>{target.answer[header]}</td>);
-    //     } else {
-    //       cells.push(<td key={header}></td>);
-    //     }
-    //   }
-
-    //   return <tr key={i++}>{cells}</tr>;
-    // });
   }
 
   return (
@@ -978,7 +1012,12 @@ const Welcome = ({ onStart, onSkip }) => {
   )
 }
 
-const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
+const Inner = ({
+  isPopup,
+  onNewJob,
+  onNewJobFromUrls,
+  onShowSettings }) => {
+
   // const [showSettings, setShowSettings] = useState();
   const { key: openAiKey, plan: openAiPlan, loading: loadingOpenAiKey } = useOpenAiKey('loading');
   const job = useActiveJob();
@@ -1123,6 +1162,7 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
         targets={job?.results?.targets || []}
         onScrape={handleScrape}
         onRemove={handleRemove}
+        onNewJobFromUrls={onNewJobFromUrls}
       />
 
       <StatusBar onRun={handleRun} />
@@ -1131,7 +1171,11 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
 }
 
 export const Scrape = ({ isPopup }) => {
-  const { key: openAiKey, plan: openAiPlan, loading: loadingOpenAiKey } = useOpenAiKey('loading');
+  const {
+    key: openAiKey,
+    plan: openAiPlan,
+    loading: loadingOpenAiKey,
+  } = useOpenAiKey('loading');
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState();
 
@@ -1140,8 +1184,6 @@ export const Scrape = ({ isPopup }) => {
   useEffect(() => {
     if (loadingOpenAiKey) return;
     if (step == 'settings') return;
-
-    console.log('set step from open ai info', openAiKey, openAiPlan, loadingOpenAiKey);
 
     if (!openAiPlan || (openAiPlan == 'openai' && !openAiKey)) {
       setStep('settings');
@@ -1177,9 +1219,12 @@ export const Scrape = ({ isPopup }) => {
   };
 
   const handleNew = async () => {
-    // await advanceRound();
     await setKey('scrapeStep', 'welcome');
     await setStep('welcome');
+  }
+
+  const handleNewFromUrls = async (urls) => {
+    handleStart(await genJobFromUrls(urls));
   }
 
   let body;
@@ -1208,6 +1253,7 @@ export const Scrape = ({ isPopup }) => {
       <Inner
         isPopup={isPopup}
         onNewJob={handleNew}
+        onNewJobFromUrls={handleNewFromUrls}
         onShowSettings={() => setStep('settings')}
       />
     );

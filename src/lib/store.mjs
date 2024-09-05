@@ -272,23 +272,45 @@ export const setJobResults = async (jobId, { targets, answers }, clearMissing) =
 
       if (targets) job.results.targets = targets;
       if (answers) {
-        console.log('ooo setting job results using answers:', answers);
+        const guessType = (val) => {
+          if (!isNaN(parseFloat(val))) return 'number';
+          if (('' + val).match(/^https?:\/\//)) return 'url';
+          return 'string';
+        }
 
-        const headers = Array.isArray(job.results.answerHeaders) ?
-              job.results.answerHeaders :
-              [];
-
+        const typeCounts = {};
+        const counts = {};
         for (const url of Object.keys(answers)) {
           for (const answer of answers[url]) {
             for (const key of Object.keys(answer)) {
-              if (!headers.includes(key)) {
-                headers.push(key);
+              if (!counts[key]) counts[key] = 0;
+              if (!typeCounts[key]) {
+                typeCounts[key] = {
+                  string: 0,
+                  url: 0,
+                  number: 0,
+                };
               }
+              counts[key]++;
+              typeCounts[key][guessType(answer[key])]++;
             }
           }
         }
 
-        job.results.answerHeaders = headers;
+        job.results.answerHeaders = Object.keys(counts);
+
+        const types = {};
+        for (const h of job.results.answerHeaders) {
+          const threshold = 0.5;
+          if (typeCounts[h].url / counts[h] > threshold)
+            types[h] = 'url';
+          else if (typeCounts[h].number / counts[h] > threshold)
+            types[h] = 'number';
+          else
+            types[h] = 'string';
+        }
+        job.results.types = types;
+
         job.results.answers = answers;
       }
 

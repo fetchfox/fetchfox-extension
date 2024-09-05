@@ -50,3 +50,29 @@ export const genBlankJob = async () => {
     },
   };
 }
+
+export const genJobFromUrls = async (urls) => {
+  const unique = [];
+  const seen = {};
+  for (const url of urls) {
+    if (seen[url]) continue;
+    unique.push(url);
+    seen[url] = true;
+  }
+  const urlString = unique.join('\n') + '\n';
+  return {
+    id: await sendNextIdMessage(),
+    name: 'Untitled Scrape',
+    urls: {
+      action: 'manual',
+      url: urlString,
+      manualUrls: urlString,
+      list: [],
+      question: '',
+    },
+    scrape: {
+      action: 'scrape',
+      questions: [],
+    },
+  };
+}

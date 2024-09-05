@@ -122,6 +122,7 @@ Follow these important rules:
 - Please make sure the response is valid JSONL. Only ONE JSON object per line. Remove any \n characters in questions and answers.
 - Use the SAME keys for each item as you find in the questions dictionary.
 - Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys.
+- Maximum 20 items
 
 {{extraRules}}
 
@@ -135,6 +136,8 @@ Example of a valid response with a single item:
 {"What is the article's title?": "New Find at the Great Wall of China", "What is the article's date in YYYY-MM-DD format?": "2024-02-04"}
 
 Below is the user prompts. Prompt directive lines are preceded by >>>>
+
+>>>> {{itemDescription}}
 
 >>>> Below are the questions for each item(s):
 

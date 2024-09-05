@@ -40,3 +40,15 @@ export const parseJsonl = (str) => {
   return result;
 }
 
+export const getJobColumn = (job, header) => {
+  const targets = job?.results?.targets || [];
+
+  const col = [];
+  for (const target of targets) {
+    for (const a of (target.answer || [])) {
+      col.push(a[header] || '');
+    }
+  }
+
+  return col;
+}
