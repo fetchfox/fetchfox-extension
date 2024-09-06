@@ -636,10 +636,10 @@ const Results = ({
   targets,
   onScrape,
   onRemove,
-  onNewJobFromUrls }) => {
+  onNewJobFromUrls }) =>
+{
 
-  const [highlight,
-setHighlight] = useState();
+  const [highlight, setHighlight] = useState();
 
   const headers = (job?.results?.answerHeaders || []);
   const types = (job?.results?.types || {});
@@ -677,7 +677,7 @@ setHighlight] = useState();
           className="btn btn-gray"
           >
           <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 5}}>
-            Scrape These <TbFileArrowRight size={14} />
+            New Scrape <TbFileArrowRight size={14} />
           </div>
         </button>
       </div>
@@ -688,7 +688,11 @@ setHighlight] = useState();
   let headerNodes = [];
   headerNodes.push(<th key="action"></th>);
   headerNodes.push(<th key="status" style={{ maxWidth: 80 }}>status</th>);
-  headerNodes.push(<th key="url" style={urlStyle}>URL</th>);
+  headerNodes.push(
+    <th key="url" style={urlStyle}>
+      URL
+      {targets && targets.length > 0 && newScrapeNode('URL')}
+    </th>);
   headerNodes.push(<th key="text">Link Text</th>);
   headerNodes = headerNodes.concat(
     headers.map(header => (
@@ -744,7 +748,12 @@ setHighlight] = useState();
       let count = 0;
       for (const answer of (target.answer || [{}])) {
         cells.push(
-          <td key="url" style={urlStyle}>
+          <td
+            key="url"
+            style={{ ...answerStyle,
+                     ...(highlight == 'URL' ? highlightStyle : {})
+                   }}
+            >
             {target.url}
           </td>);
         cells.push(
@@ -1225,6 +1234,7 @@ export const Scrape = ({ isPopup }) => {
 
   const handleNewFromUrls = async (urls) => {
     handleStart(await genJobFromUrls(urls));
+    window.scrollTo(0, 0);
   }
 
   let body;

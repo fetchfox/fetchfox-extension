@@ -45,8 +45,12 @@ export const getJobColumn = (job, header) => {
 
   const col = [];
   for (const target of targets) {
-    for (const a of (target.answer || [])) {
-      col.push(a[header] || '');
+    if (header == 'URL') {
+      col.push(target.url);
+    } else {
+      for (const a of (target.answer || [])) {
+        col.push(a[header] || '');
+      }
     }
   }
 

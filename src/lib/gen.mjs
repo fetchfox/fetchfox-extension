@@ -64,7 +64,7 @@ export const genJobFromUrls = async (urls) => {
     id: await sendNextIdMessage(),
     name: 'Untitled Scrape',
     urls: {
-      action: 'manual',
+      action: 'gather',
       url: urlString,
       manualUrls: urlString,
       list: [],
