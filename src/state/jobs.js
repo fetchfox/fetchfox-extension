@@ -65,6 +65,7 @@ export const useActiveJob = () => {
 
   useEffect(() => {
     getActiveJob().then(j => {
+      if (!j) return;
       setActiveId(j.id);
     });
     chrome.storage.onChanged.addListener(update);

@@ -81,10 +81,22 @@ export const scrapePage = async (
     }
 
     console.log('Scrape answer:', a);
+
+    const localAnswer = ensureArray(a)
+          .filter(i => i.itemCount == undefined ||
+                  Object.keys(i).length > 1);
+
+    let single = false;
+    if (localAnswer.length == 1) {
+      single = true;
+      for (const key of Object.keys(localAnswer[0])) {
+        if (!localAnswer[0][key]) single = false;
+      }
+    }
+
     return {
-      answer: ensureArray(a)
-        .filter(i => i.itemCount == undefined ||
-                Object.keys(i).length > 1),
+      answer: localAnswer,
+      single,
       more: (page.text.length > (offset + 1) * textChunkSize ||
              page.html.length > (offset + 1) * htmlChunkSize),
     };
@@ -107,6 +119,7 @@ export const scrapePage = async (
     console.log('clip combined answer:', answer);
 
     if (!result.more) break;
+    if (result.single) break;
   }
 
   setStatus('AI: ' + JSON.stringify(answer));

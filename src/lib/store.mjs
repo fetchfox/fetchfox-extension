@@ -130,6 +130,7 @@ export const getActiveJob = async () => {
 
   const activeId = st?.activeId;
   const job = await getJob(activeId);
+  if (!job) return new Promise((ok) => ok(null));
   if (!job.id) {
     job.id = activeId;
     return saveJob(job)
