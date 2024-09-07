@@ -10,6 +10,7 @@ import { setGlobalError } from './errors.mjs';
 import { getTemplate } from './templates.mjs';
 import { sleep, parseJsonl } from './util.mjs';
 
+const recommendModel = 'gpt-4o-mini';
 const queryLogCutoff = 1;  // 1 minute
 let queryLog = [];
 let observedRateLimit = 1000000;  // tpm, a guess that adjusts
@@ -243,8 +244,8 @@ export const getAvailableModels = async () => {
   const data = await resp.json();
   const models = data.data.map(m => m.id)
         .sort((a, b) => {
-          if (a == 'gpt-4o') return -1;
-          if (b == 'gpt-4o') return 1;
+          if (a == recommendModel) return -1;
+          if (b == recommendModel) return 1;
 
           const [ma, mb] = [
             a.match(/gpt-([0-9]+)/),
