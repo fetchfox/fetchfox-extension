@@ -2,14 +2,16 @@ import { setStatus } from './store.mjs';
 import { addListener, removeListener } from './controller.mjs';
 import { sleep } from './util.mjs';
 
-export const getPageData = async (url, active, onCreate) => {
-  let tab;
 
+const loadSleepTimes = {};
+
+export const getPageData = async (url, active, onCreate) => {
   const tabWithUrl = await getTabWithUrl(url);
   if (tabWithUrl) {
     return getTabData(tabWithUrl.id, false);
   }
 
+  let tab;
   if (active) {
     tab = await chrome.tabs.create({ url, active: true });
 
@@ -69,8 +71,6 @@ export const getPageData = async (url, active, onCreate) => {
 
   removeListener(handleStop);
 
-  console.log('?? error while loading page?', url, outcome, error);
-
   if (error) {
     if (!active) { try { chrome.tabs.remove(tab.id) } catch(e) {} }
     return { error };
@@ -96,11 +96,17 @@ export const getTabData = async (tabId, shouldClose) => {
     console.log('=> Inject:', tabId, i);
 
     try {
+      const args = [...suggestSleep(await getTabUrl(tabId))];
+      console.log('sleep args', args);
       results = await chrome.scripting.executeScript({
         target: { tabId },
         injectImmediately: true,
-        func: async () => {
-          console.log('injected');
+        args,
+        func: async (sleepTime, shouldCheckLoad) => {
+          console.log('injected', sleepTime, shouldCheckLoad);
+
+          const defaultSleep = shouldCheckLoad ? 500 : (sleepTime || 1500);
+          const dynamicSleep = 2000;
 
           // Max 15 seconds per page
           // TODO: test/ fix this
@@ -109,13 +115,14 @@ export const getTabData = async (tabId, shouldClose) => {
               setTimeout(() => {
                 console.log('===> TIMEOUT', window.location.href);
                 ok({ error: 'timeout' });
-              }, 15*1000)),
+              }, 18*1000)),
 
             new Promise(async (ok) => {
               const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+              const start = (new Date()).getTime();
               // Sleep a little for dynamic content
-              await sleep(2000);
+              await sleep(defaultSleep);
 
               // via https://chatgpt.com/share/ef8bcaec-6fb1-478b-a074-1ae22c908ae2
               const getText = (node) => {
@@ -147,8 +154,68 @@ export const getTabData = async (tabId, shouldClose) => {
               }
 
               const url = window.location.href;
-              const text = getText(document.body) || '';
-              const html = document.documentElement.innerHTML || '';
+              let text = getText(document.body) || '';
+              let html = getHtml(document.body) || '';
+
+              const maxDynamicWaits = 3;
+              let i;
+              for (i = 0; shouldCheckLoad & i < maxDynamicWaits; i++) {
+                // Check if its loaded
+                console.log('== check if loaded ==');
+                // const status = 'xyz';
+                const status = await new Promise((ok) => {
+                  chrome.runtime.sendMessage(
+                    {
+                      action: 'checkLoading',
+                      text,
+                      html,
+                    },
+                    (resp) => {
+                      console.log('checkloading said:', resp);
+                      ok(resp.answer?.status);
+                    });
+                });
+
+                if (status == 'done') {
+                  console.log('== checkLoading done! break ==');
+
+                  if (i > 0) {
+                    chrome.runtime.sendMessage({
+                      action: 'setStatus',
+                      message: 'Loaded dynamic content on ' + url,
+                    });
+                  }
+                  break;
+                }
+
+                // Page maybe not loaded... let's wait and try again
+                chrome.runtime.sendMessage({
+                  action: 'setStatus',
+                  message: 'Waiting for dynamic content on ' + url,
+                });
+                console.log('== checkLoading waiting ==');
+                await sleep(dynamicSleep);
+
+                if (i + 1 == maxDynamicWaits) {
+                  chrome.runtime.sendMessage({
+                    action: 'setStatus',
+                    message: 'Give up waiting for dynamic content on ' + url,
+                  });
+                }
+
+                text = getText(document.body) || '';
+                html = getHtml(document.body) || '';
+              }
+
+              const took = (new Date()).getTime() - start;
+
+              if (shouldCheckLoad) {
+                chrome.runtime.sendMessage({
+                  action: 'reportSleep',
+                  url,
+                  msec: took,
+                });
+              }
 
               console.log('check for redir', text);
 
@@ -183,7 +250,6 @@ export const getTabData = async (tabId, shouldClose) => {
               }));
 
               ok({ url, text, html, links });
-
             })
           ]);
 
@@ -237,5 +303,42 @@ export const getTabWithUrl = async (url) => {
     chrome.tabs.query(
       { url },
       (tabs) => ok(tabs[0] ? tabs[0] : null));
+  });
+}
+
+export const reportSleep = async (url, msec) => {
+  const hostname = (new URL(url)).hostname;
+  if (!loadSleepTimes[hostname]) {
+    loadSleepTimes[hostname] = {
+      times: [],
+    };
+  }
+  const t = loadSleepTimes[hostname].times;
+  t.unshift(msec);
+  loadSleepTimes[hostname].times = t.slice(0, 10);
+  console.log('nav loadSleepTimes', hostname, loadSleepTimes[hostname].times);
+}
+
+export const suggestSleep = (url) => {
+  const hostname = (new URL(url)).hostname;
+  const data = loadSleepTimes[hostname];
+  if (!data || data.times.length < 2) {
+    return [null, true];
+  }
+  const suggested = Math.min(
+    15*1000,  // Hard cap 15 seconds sleep
+    Math.max(...(data.times)) * 1.1);
+
+  // Check it less as time goes on, min 5% of the time
+  const shouldCheckLoad = Math.random() < Math.max(
+    0.05,
+    0.80 - data.times.length / 20);
+
+  return [suggested, shouldCheckLoad];
+}
+
+const getTabUrl = async (tabId) => {
+  return new Promise((ok) => {
+    chrome.tabs.get(tabId, (tab) => ok(tab.url));
   });
 }

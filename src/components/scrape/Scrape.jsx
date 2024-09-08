@@ -863,7 +863,8 @@ const Welcome = ({ onStart, onSkip }) => {
 
     setLoading(true);
     const page = isActive ? (await getTabData()) : null;
-    const job = await genJob(prompt, url, page);
+    const useUrl = isActive ? (await getActiveTab()).url : url;
+    const job = await genJob(prompt, useUrl, page);
     onStart(job);
   };
 

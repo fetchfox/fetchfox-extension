@@ -4,6 +4,7 @@ export const getTemplate = (name) => {
     gather: gatherTemplate,
     scrape: scrapeTemplate,
     name: nameTemplate,
+    checkLoading: checkLoadingTemplate,
   }[name];
 }
 
@@ -167,3 +168,30 @@ Example of valid response:
 The job definition, in JSON, is:
 
 {{job}}`;
+
+export const checkLoadingTemplate = `Below is text and HTML from a webpage. Your job is to check if the main content on the page is loaded, or if it is not yet available do to dynamic requests like ajax and other async dynamic content. The main content is information relevant to the user's questions, which are show below.
+
+Follow these guidelines:
+- If the main content of the page is missing, reply "loading"
+- If the main content is available, reply "done"
+- If the main content is available but small parts are loading, reply "done"
+- Your response MUST be valid json, with the key "status" and either "loading" or "done" as the value
+- Summarize the main contnet of the page in 2-10 words before deciding if it is loaded
+
+Example of valid responses:
+
+{ contentSummary: "user profile page with emails", status: "loading" }
+{ contentSummary: "real estate listing page with price history", status: "done" }
+
+Below is the user's questions:
+
+{{questions}}
+
+Below is the text from the page:
+
+{{text}}
+
+Below is the HTML from the page:
+
+{{html}}
+`;

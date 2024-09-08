@@ -4,6 +4,7 @@ import { exec } from '../../lib/ai.mjs';
 import {
   nextId,
   saveJob,
+  getActiveJob,
   setJobField,
   setActiveJob,
   setJobResults,
@@ -12,7 +13,7 @@ import {
   setScrapeStatus,
   setScrapeAnswer,
 } from '../../lib/store.mjs';
-import { getPageData, getTabData, getActiveTab } from '../../lib/navigation.mjs';
+import { getPageData, getTabData, getActiveTab, reportSleep } from '../../lib/navigation.mjs';
 import { parseLinks, cleanLinks, dedupeLinks } from '../../lib/gather.mjs';
 import { scrapePage } from '../../lib/scrape.mjs';
 import { getRoundId, isActive, runStopListeners, advanceRound } from '../../lib/controller.mjs';
@@ -23,8 +24,20 @@ chrome.runtime.onMessage.addListener(function (req, sender, sendResponse) {
   if (req.action == 'runJob') runJob(req.job, req.tabId);
   else if (req.action == 'runGather') runGather(req.job, req.tabId);
   else if (req.action == 'runScrape') runScrape(req.job, req.urls);
-
   else if (req.action == 'stop') runStopListeners();
+
+  else if (req.action == 'checkLoading') {
+    checkLoading(req.text, req.html).then(sendResponse);
+    return true;
+  }
+
+  if (req.action == 'reportSleep') {
+    reportSleep(req.url, req.msec);
+  }
+
+  else if (req.action == 'setStatus') {
+    setStatus(req.message);
+  }
 
   else if (req.action == 'nextId') {
     nextId().then(sendResponse);
@@ -167,6 +180,20 @@ const runGather = async (job, tabId, percentFactor) => {
 
   return links
 };
+
+const checkLoading = async (text, html) => {
+  const job = await getActiveJob();
+  console.log('checkLoading for', text, html);
+  const answer = await exec(
+    'checkLoading',
+    {
+      text: text.substr(0, 10000),
+      html: html.substr(0, 30000),
+      questions: JSON.stringify(job.scrape?.questions || []),
+    });
+  console.log('checkLoading resp', answer);
+  return { status: 'ok', answer };
+}
 
 const runScrape = async (job, urls, percentAdd) => {
   if (!percentAdd) percentAdd = 0;
