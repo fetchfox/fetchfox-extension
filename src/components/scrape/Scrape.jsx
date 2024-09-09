@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
 import { FiCheck, FiEdit2 } from 'react-icons/fi';
 import Textarea from 'react-expanding-textarea';
 import {

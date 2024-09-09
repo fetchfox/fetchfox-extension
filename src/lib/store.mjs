@@ -37,7 +37,7 @@ const lockedJobUpdate = async (jobId, fn) => {
 
   await initSt();
   await lock();
-  console.log('Got LOCK', jobId);
+  console.log('Got lock', jobId);
 
   try {
     const job = await getJob(jobId);
@@ -46,7 +46,7 @@ const lockedJobUpdate = async (jobId, fn) => {
     const result = await saveJob(job)
     return result;
   } finally {
-    console.log('UNLOCK', jobId);
+    console.log('Unlock', jobId);
     unlock();
   }
 }
@@ -108,7 +108,7 @@ export const saveJob = async (job) => {
   delta[key] = job;
   st[key] = job;
 
-  console.log('jjj save job:', job.id, job);
+  console.log('Save job:', job.id, job);
 
   return await chrome.storage.local.set(delta);
 };
@@ -117,7 +117,7 @@ export const setJobField = async (jobId, field, val) => {
   return lockedJobUpdate(
     jobId,
     (job) => {
-      console.log('jjj set job field:', jobId, field, val);
+      console.log('Set job field:', jobId, field, val);
       job[field] = val;
       return job;
     });

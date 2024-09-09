@@ -4,20 +4,25 @@ import { createRoot } from 'react-dom/client';
 import Popup from './Popup';
 import './index.css';
 
-import store from '../../store/rstore.mjs';
-import { Provider } from 'react-redux';
-
-console.log('Popup Bg register onMessage.addListener');
-chrome.runtime.onMessage.addListener(async function (req, sender, sendResponse) {
-  console.log('Popup Bg got message', req, sender);
-});
+(() => {
+  for (const key of ['log', 'warn', 'error']) {
+    console.log('Replace console', key);
+    const original = console[key];
+    console[key] = (...args) => {
+      chrome.runtime.sendMessage({
+        action: 'console',
+        key,
+        args,
+      });
+      original(...args);
+    };
+  }
+})();
 
 const container = document.getElementById('app-container');
-const root = createRoot(container); // createRoot(container!) if you use TypeScript
+const root = createRoot(container);
 root.render(
-  <Provider store={store}>
-    <div className="App">
-      <Popup />
-    </div>
-  </Provider>
+  <div className="App">
+    <Popup />
+  </div>
 );

@@ -2,6 +2,7 @@ import { GATHER_TARGETS_PROMPT, EXAMPLE_LINKS } from '../../lib/constants.mjs';
 import { sleep, splitUrls } from '../../lib/util.mjs';
 import { exec } from '../../lib/ai.mjs';
 import {
+  setKey,
   nextId,
   saveJob,
   getActiveJob,
@@ -12,15 +13,19 @@ import {
   setPercent,
   setScrapeStatus,
   setScrapeAnswer,
+  pushConsole,
 } from '../../lib/store.mjs';
 import { getPageData, getTabData, getActiveTab, reportSleep } from '../../lib/navigation.mjs';
 import { parseLinks, cleanLinks, dedupeLinks } from '../../lib/gather.mjs';
 import { scrapePage } from '../../lib/scrape.mjs';
 import { getRoundId, isActive, runStopListeners, advanceRound } from '../../lib/controller.mjs';
 import { nameTemplate } from '../../lib/templates.mjs';
+import { sendReport } from '../../lib/report.mjs';
 
 
 chrome.runtime.onMessage.addListener(function (req, sender, sendResponse) {
+  console.log('bg got message:', req);
+
   if (req.action == 'runJob') runJob(req.job, req.tabId);
   else if (req.action == 'runGather') runGather(req.job, req.tabId);
   else if (req.action == 'runScrape') runScrape(req.job, req.urls);
@@ -37,6 +42,15 @@ chrome.runtime.onMessage.addListener(function (req, sender, sendResponse) {
 
   else if (req.action == 'setStatus') {
     setStatus(req.message);
+  }
+
+  else if (req.action == 'console') {
+    saveConsole(req.key, req.args);
+  }
+
+  else if (req.action == 'reportBug') {
+    reportBug().then(sendResponse);
+    return true;
   }
 
   else if (req.action == 'nextId') {
@@ -321,4 +335,37 @@ const runScrape = async (job, urls, percentAdd) => {
   }
 
   setPercent(null);
+}
+
+const consoleMessages = [];
+const saveConsole = (key, args) => {
+  // Do not put any console.log() statements in here
+
+  const message = [
+    '' + (new Date()),
+    key,
+    JSON.stringify(args),
+  ].join('\t').substr(0, 5000); // max 5kB per message
+  consoleMessages.push(message);
+
+  const l = consoleMessages.length;
+  const max = 100000;
+  if (l > max) {
+    consoleMessages = consoleMessages.slice(l - max);
+  }
+}
+
+(() => {
+  for (const key of ['log', 'warn', 'error']) {
+    console.log('Replace bg console', key);
+    const original = console[key];
+    console[key] = (...args) => {
+      original(...args);
+      saveConsole(key, args);
+    };
+  }
+})();
+
+const reportBug = async () => {
+  return sendReport(consoleMessages.join('\n'));
 }
