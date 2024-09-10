@@ -24,7 +24,7 @@ import { sendReport } from '../../lib/report.mjs';
 
 
 chrome.runtime.onMessage.addListener(function (req, sender, sendResponse) {
-  console.log('bg got message:', req);
+  if (req.action != 'console') console.log('bg got message:', req);
 
   if (req.action == 'runJob') runJob(req.job, req.tabId);
   else if (req.action == 'runGather') runGather(req.job, req.tabId);
@@ -356,6 +356,9 @@ const saveConsole = (key, args) => {
 }
 
 (() => {
+  const devMode = !('update_url' in chrome.runtime.getManifest());
+  if (devMode) return;
+
   for (const key of ['log', 'warn', 'error']) {
     console.log('Replace bg console', key);
     const original = console[key];

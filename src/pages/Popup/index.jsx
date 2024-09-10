@@ -5,6 +5,9 @@ import Popup from './Popup';
 import './index.css';
 
 (() => {
+  const devMode = !('update_url' in chrome.runtime.getManifest());
+  if (devMode) return;
+
   for (const key of ['log', 'warn', 'error']) {
     console.log('Replace console', key);
     const original = console[key];

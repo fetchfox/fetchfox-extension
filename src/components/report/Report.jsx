@@ -93,15 +93,15 @@ export const Report = () => {
   return (
     <div>
       {id && <ReportModal id={id} onDone={() => setId(null)} />}
-      <button
-        className="btn btn-gray"
+      <div
+        className="clickable"
         onClick={handleReport}
         >
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 5 }}>
           <div>Report Issue</div>
           <FaShareFromSquare size={12} />
         </div>
-      </button>
+      </div>
     </div>
   );
 }
