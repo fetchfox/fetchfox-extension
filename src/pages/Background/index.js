@@ -153,11 +153,14 @@ const runGather = async (job, tabId, percentFactor) => {
     console.log('gather current tab?', tabId, tabUrl, url);
 
     if (tabId && tabUrl == url) {
-      console.log('getTabData');
-      page = await getTabData(tabId, false);
+      page = await getTabData(tabId, { shouldClose: false });
     } else {
-      console.log('getPageData');
-      page = await getPageData(url, job.scrape?.concurrency < 0);
+      page = await getPageData(
+        url,
+        {
+          active: job.scrape?.concurrency < 0,
+          sleepTime: job.scrape?.sleepTime,
+        });
     }
 
     console.log('gather got page:', page);
@@ -249,17 +252,18 @@ const runScrape = async (job, urls, percentAdd) => {
     console.log('bg runscrape getting page data', url);
 
     let timeoutId;
-    const page = await getPageData(
-      url,
-      job.scrape?.concurrency < 0,
-      (tab) => {
+    const options = {
+      active: job.scrape?.concurrency < 0,
+      sleepTime: job.scrape?.sleepTime,
+      onCreate: (tab) => {
         timeoutId = setTimeout(
           () => {
             try { chrome.tabs.remove(tab.id) } catch(e) {};
           },
           15*1000);
       }
-    );
+    };
+    const page = await getPageData(url, options);
 
     if (timeoutId) clearTimeout(timeoutId);
 

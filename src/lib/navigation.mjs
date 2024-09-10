@@ -1,5 +1,5 @@
-import { setStatus } from './store.mjs';
-import { addListener, removeListener } from './controller.mjs';
+import { setStatus, setKey } from './store.mjs';
+import { getRoundId, isActive, addListener, removeListener } from './controller.mjs';
 import { sleep } from './util.mjs';
 import { getTabUrl, closeTabIfExists } from './browser.mjs';
 
@@ -8,10 +8,16 @@ const loadSleepTimes = {};
 const maxPageAttempts = 2;
 const maxTabAttempts = 3;
 
-export const getPageData = async (url, active, onCreate) => {
+export const getPageData = async (url, options) => {
+  console.log('get page data got options (sleep)', options);
+
+  const roundId = await getRoundId();
+
   let result;
   for (let i = 0; i < maxPageAttempts; i++) {
-    result = await getPageDataIteration(url, active, onCreate);
+    if (!await isActive(roundId)) return;
+
+    result = await getPageDataIteration(url, options);
     if (!result || result.error) {
       console.error(`Got page data error ${url} (${i}/${maxPageAttempts}):`, result);
       await sleep(2000);
@@ -23,10 +29,11 @@ export const getPageData = async (url, active, onCreate) => {
   return result?.error ? result : { error: `Could not get page data for ${url}` };
 }
 
-const getPageDataIteration = async (url, active, onCreate) => {
+const getPageDataIteration = async (url, options) => {
+  const { active, onCreate, sleepTime } = options || {};
   const tabWithUrl = await getTabWithUrl(url);
   if (tabWithUrl) {
-    return getTabData(tabWithUrl.id, false);
+    return getTabData(tabWithUrl.id, { shouldClose: false, sleepTime });
   }
 
   let tab;
@@ -86,7 +93,7 @@ const getPageDataIteration = async (url, active, onCreate) => {
 
   let results;
   if (!error) {
-    results = await getTabData(tab.id, true)
+    results = await getTabData(tab.id, { shouldClose: true, sleepTime });
     if (!results) {
       error = 'No tab results';
     }
@@ -100,7 +107,13 @@ const getPageDataIteration = async (url, active, onCreate) => {
   return results;
 }
 
-export const getTabData = async (tabId, shouldClose) => {
+export const getTabData = async (tabId, options) => {
+  const roundId = await getRoundId();
+
+  const { shouldClose, sleepTime } = options || {};
+
+  console.log('get tab data got options (sleep)', options);
+
   if (!tabId) {
     tabId = (await getActiveTab()).id;
   }
@@ -114,13 +127,24 @@ export const getTabData = async (tabId, shouldClose) => {
   let results;
   // Retry a few times, mainly for redirects
   for (let i = 0; i < maxTabAttempts; i++) {
+    if (!await isActive(roundId)) return;
+
     // get the html + text
     console.log('=> Inject:', tabId, i);
     url = await getTabUrl(tabId);
     if (!url) {
       console.warn(`No URL found when trying to get tab data for ${tabId}`);
     }
-    const args = [...suggestSleep(url)];
+
+    console.log('Got sleep time:', sleepTime);
+    let args;
+    if (sleepTime && !isNaN(Number(sleepTime))) {
+      console.log('Using given sleep time:', sleepTime);
+      args = [Number(sleepTime), false];
+    } else {
+      console.log('Auto suggesting sleep time');
+      args = suggestSleep(url);
+    }
     console.log('sleep args', tabId, args);
 
     const frames = await new Promise((ok) => {
@@ -171,7 +195,7 @@ export const getTabData = async (tabId, shouldClose) => {
 
   if (result.redir) {
     console.log('Handle redir', result.redir);
-    return getPageData(result.redir);
+    return getPageData(result.redir, options);
   } else {
     return result;
   }
@@ -204,6 +228,8 @@ export const reportSleep = async (url, msec) => {
   t.unshift(msec);
   loadSleepTimes[hostname].times = t.slice(0, 10);
   console.log('nav loadSleepTimes', hostname, loadSleepTimes[hostname].times);
+
+  setKey('loadSleepTimes', loadSleepTimes);
 }
 
 export const suggestSleep = (url) => {
@@ -248,7 +274,8 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       const start = (new Date()).getTime();
-      // Sleep a little for dynamic content
+
+      // Sleep a for dynamic content
       await sleep(defaultSleep);
 
       // via https://chatgpt.com/share/ef8bcaec-6fb1-478b-a074-1ae22c908ae2

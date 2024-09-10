@@ -56,6 +56,7 @@ import {
   useJob,
   useActiveJob,
 } from '../../state/jobs';
+import { useAutoSleepTime } from '../../state/util';
 import { useOpenAiKey, useUsage } from '../../state/openai';
 import { Loading } from '../common/Loading';
 import { Checkbox } from '../common/Checkbox';
@@ -471,9 +472,13 @@ https://www.example.com/page-2
 const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
   const [questions, setQuestions] = useState(['']);
   const [concurrency, setConcurrency] = useState();
+  const [sleepTime, setSleepTime] = useState();
 
   const numResults = (job?.results?.targets || []).length;
   const currentStep = numResults == 0 ? 1 : 2;
+  const autoSleepTime = useAutoSleepTime();
+
+  console.log('autoSleepTime', autoSleepTime);
 
   const timeoutRef = useRef(null);
 
@@ -481,6 +486,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
     if (!job?.scrape) return;
     setQuestions(job.scrape?.questions || ['']);
     setConcurrency(job.scrape?.concurrency || 3);
+    setSleepTime(job.scrape?.sleepTime || 'auto');
   }, [job]);
 
 
@@ -522,6 +528,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
   };
 
   const updateConcurrency = (val) => updateJob('concurrency', val, setConcurrency);
+  const updateSleepTime = (val) => updateJob('sleepTime', val, setSleepTime);
 
   const updateQuestion = async (index, val) => {
     const q = JSON.parse(JSON.stringify(questions));
@@ -595,26 +602,58 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
         <FiPlus size={14} />&nbsp;Add Field
       </div>
 
-      <p>Max tabs to open at once. Reduce if you hit rate limits.</p>
-      <select value={concurrency} onChange={(e) => updateConcurrency(e.target.value)}>
-        <option value=""></option>
-        <optgroup label="Foreground tabs">
-          <option value={-1}>1 foreground tab</option>
-          <option value={-2}>2 foreground tabs</option>
-          <option value={-3}>3 foreground tabs</option>
-        </optgroup>
-        <optgroup label="Background tabs">
-          <option value={1}>1 (slowest, least likely to be blocked)</option>
-          <option value={2}>2 </option>
-          <option value={3}>3 (default)</option>
-          <option value={5}>5 </option>
-        </optgroup>
-        <optgroup label="Danger Zone - Sites may block you at these rates">
-          <option value={10}>10 (very fast, some sites may block)</option>
-          <option value={25}>25 (even faster, many sites will block)</option>
-          <option value={50}>50 (warp speed! you're gonna see some captchas)</option>
-        </optgroup>
-      </select>
+      <div style={{ display: 'flex', flexDirection: 'row', gap: 5 }}>
+        <div style={{ width: '60%' }}>
+          <p>Max tabs at once. Reduce if you hit rate limits.</p>
+          <select
+            style={{ width: '100%' }}
+            value={concurrency}
+            onChange={(e) => updateConcurrency(e.target.value)}
+            >
+            <option value=""></option>
+            <optgroup label="Foreground tabs">
+              <option value={-1}>1 foreground tab</option>
+              <option value={-2}>2 foreground tabs</option>
+              <option value={-3}>3 foreground tabs</option>
+              <option value={-5}>5 foreground tabs</option>
+              <option value={-10}>10 foreground tabs (careful!)</option>
+            </optgroup>
+            <optgroup label="Background tabs">
+              <option value={1}>1 (slowest, least likely to be blocked)</option>
+              <option value={2}>2 </option>
+              <option value={3}>3 (default)</option>
+              <option value={5}>5 </option>
+            </optgroup>
+            <optgroup label="Danger Zone - Sites may block you at these rates">
+              <option value={10}>10 (very fast, some sites may block)</option>
+              <option value={25}>25 (even faster, many sites will block)</option>
+              <option value={50}>50 (warp speed! you're gonna see some captchas)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div style={{ width: '40%' }}>
+          <p>Wait time before extraction</p>
+          <select
+            style={{ width: '100%' }}
+            value={sleepTime}
+            onChange={(e) => updateSleepTime(e.target.value)}
+            >
+            <option value=""></option>
+            <optgroup label="Automatically adjust">
+              <option value="auto">
+                Auto
+                {autoSleepTime?.pretty && ` (${autoSleepTime.pretty})`}
+              </option>
+            </optgroup>
+            <optgroup label="Manual">
+              <option value={2000}>2 seconds</option>
+              <option value={2000}>5 seconds</option>
+              <option value={10000}>10 seconds</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
 
       {job.urls.action == 'gather' && <div style={{ marginTop: 10 }}>
         <button
