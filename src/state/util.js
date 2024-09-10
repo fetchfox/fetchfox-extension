@@ -14,14 +14,15 @@ export const useAutoSleepTime = () => {
     for (const target of job?.results?.targets) {
       const hostname = (new URL(target.url)).hostname;
       if (loadSleepTimes[hostname]) {
-        times.push(...(loadSleepTimes[hostname].times || []));
+        const values = (loadSleepTimes[hostname].times || []).map(parseFloat);
+        times.push(...values);
       }
     }
     console.log('loadSleepTimes got times', times);
 
     if (times.length == 0) return;
 
-    times.sort();
+    times.sort((a, b) => a - b);
     const lo = Math.round(times[Math.floor(times.length * 0.2)] / 1000);
     const hi = Math.round(times[Math.floor(times.length * 0.8)] / 1000);
     if (lo == hi) {

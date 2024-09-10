@@ -295,6 +295,7 @@ const runScrape = async (job, urls, percentAdd) => {
   };
 
   let next = 0;
+  let done = 0;
 
   let p = [];
 
@@ -324,6 +325,8 @@ const runScrape = async (job, urls, percentAdd) => {
     console.log('bg nnn runscrape got completed:', doneIndex);
     console.log('bg runscrape setting results/status', url);
 
+    done++;
+
     if (result.error) {
       await setScrapeStatus(job.id, roundId, [url], 'error');
     } else {
@@ -333,7 +336,11 @@ const runScrape = async (job, urls, percentAdd) => {
     await setStatus(
       (result.error ? 'Error' : 'Scraped') +
       ' (' + next + '/' + urls.length + ') ' + url, roundId,  -1);
-    await setPercent(percentAdd + ((next / urls.length) * (1 - percentAdd)));
+    await setPercent(
+      percentAdd + ((done / urls.length) * (1 - percentAdd)),
+      done,
+      urls.length,
+    );
 
     p[doneIndex] = null;
   }

@@ -123,6 +123,7 @@ const openPanel = async () => {
 const StatusBar = ({ onRun }) => {
   const [message, setMessage] = useState('');
   const [percent, setPercent] = useState();
+  const [completion, setCompletion] = useState();
   const [tpm, setTpm] = useState();
   const [inFlight, setInFlight] = useState(0);
   const [loading, setLoading] = useState();
@@ -137,6 +138,7 @@ const StatusBar = ({ onRun }) => {
       .then(st => {
         if (st.status) setMessage(st.status.message);
         if (st.percent) setPercent(st.percent);
+        if (st.completion) setCompletion(st.completion);
         if (st.tpm) setTpm(st.tpm);
         if (st.inFlight) setInFlight(st.inFlight);
       });
@@ -146,6 +148,7 @@ const StatusBar = ({ onRun }) => {
     const handle = (changes, area) => {
       if (changes.status) setMessage(changes.status.newValue.message);
       if (changes.percent) setPercent(changes.percent.newValue);
+      if (changes.completion) setCompletion(changes.completion.newValue);
       if (changes.tpm) setTpm(changes.tpm.newValue);
       if (changes.inFlight) setInFlight(changes.inFlight.newValue);
     };
@@ -158,7 +161,7 @@ const StatusBar = ({ onRun }) => {
     onRun();
   };
 
-  const size = 24;
+  const size = 28
 
   const buttonNode = (
     <div>
@@ -174,6 +177,8 @@ const StatusBar = ({ onRun }) => {
 
   const busy = loading || inFlight != 0;
   // const busy = true;
+
+  const calcWidth = 'calc(100% - ' + (2 * size + 16) + 'px)';
 
   const loadingNode = (
     <div style={{ height: size + 20,
@@ -199,19 +204,41 @@ const StatusBar = ({ onRun }) => {
         </a>
       </div>}
 
-      {busy && percent && <div style={{ width: 'calc(100% - ' + (2 * size + 40) + 'px)',
-                    position: 'absolute',
-                    marginLeft: size * 2 + 16,
-                    background: '#fff3',
-                    borderRadius: 4,
+      {busy && percent && <div style={{ width: calcWidth,
+                                        height: 18,
+                                        bottom: 10,
+                                        position: 'absolute',
+                                        marginLeft: size * 2 + 16,
+                                        background: '#fff3',
+                                        borderRadius: 4,
                   }}>
         <div style={{ width: Math.floor(100 * percent) + '%',
-                      height: size,
+                      height: 18,
                       background: mainColor,
                       borderRadius: 4,
                     }}>
         </div>
       </div>}
+
+      <div style={{ position: 'absolute',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    width: calcWidth,
+                    marginLeft: size * 2 + 16,
+                    fontSize: 10,
+                    top: 6,
+                  }}>
+        <div>
+          {Math.round(100*percent)}%
+          {percent && completion?.done && completion?.total &&
+            <span> ({completion.done}/{completion.total})</span>
+           }
+        </div>
+        <div>
+          {tpm && <span> {formatNumber(tpm, true)} tpm, {formatNumber(usage.total || 0, true)}</span>}
+        </div>
+      </div>
 
       <div style={{ whiteSpace: 'nowrap',
                     overflow: 'hidden',
@@ -219,9 +246,10 @@ const StatusBar = ({ onRun }) => {
                     zIndex: 2,
                     width: 'calc(100% - 10px)',
                     paddingRight: 30,
-                    marginLeft: 10 }}>
-        {Math.round(100*percent)}%{tpm && <span> ({formatNumber(tpm, true)} tpm, {formatNumber(usage.total || 0, true)}) </span>}{' '}
-        - {inFlight > 0 ? (' ' + message) : ''}
+                    marginLeft: 8,
+                    marginTop: 8,
+                  }}>
+        {inFlight > 0 ? (' ' + message) : ''}
       </div>
     </div>
   );

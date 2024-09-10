@@ -122,6 +122,8 @@ export const scrapePage = async (
     if (result.single) break;
   }
 
-  setStatus('AI: ' + JSON.stringify(answer));
+  setStatus('Result: ' + JSON.stringify(
+    Object.values(answer[0] || {})
+  ));
   return answer;
 }

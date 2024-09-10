@@ -166,9 +166,12 @@ export const setStatus = async (message, roundId, delta) => {
   });
 }
 
-export const setPercent = async (percent) => {
+export const setPercent = async (percent, done, total) => {
   lockedUpdate(async (st) => {
-    return { percent: Math.max(0.01, Math.min(percent, 0.99)) };
+    return {
+      percent: Math.max(0.01, Math.min(percent, 0.99)),
+      completion: { done, total },
+    };
   });
 }
 
