@@ -6,13 +6,17 @@ import { sendNextIdMessage } from './job.mjs';
 
 export const genJob = async (scrapePrompt, url, page) => {
   const count = 5000;
+
+  const text = page?.text || ''
+  const html = page?.html || ''
+
   const answer = await exec(
     'genJob',
     {
       url,
       prompt: scrapePrompt,
-      text: (page ? page.text : '').slice(300000),
-      html: page ? page.html.slice(0, count) : '',
+      text: text.substr(0, 30000),
+      html: html.substr(0, 6000),
       count,
     });
 
