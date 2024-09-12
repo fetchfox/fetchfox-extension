@@ -355,6 +355,8 @@ const runScrape = async (job, urls, percentAdd) => {
 let consoleMessages = [];
 let consoleTimeoutId = null;
 const saveConsole = (key, args) => {
+  return; // Disable for now
+
   // Do not put any console.log() statements in here
 
   const message = [
