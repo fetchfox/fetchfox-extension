@@ -296,10 +296,19 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         return t;
       }
 
-      // via https://chatgpt.com/share/e9a142ab-775d-4f1d-8a84-69f829ffc45c
+      // Via https://chatgpt.com/share/e9a142ab-775d-4f1d-8a84-69f829ffc45c
       const getHtml = (node) => {
         let clone = node.cloneNode(true);
-        for (const tagName of ['style', 'path', 'code']) {
+
+        const removeTags = ['style', 'path'];
+
+        // Remove LinkedIn junk
+        // TODO: more resilient solution
+        if (url.indexOf('https://www.linkedin.com') != -1) {
+          removeTags.push('code');
+        }
+
+        for (const tagName of removeTags) {
           clone
             .querySelectorAll(tagName)
             .forEach(el => el.remove());
@@ -311,6 +320,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
           const style = window.getComputedStyle(el);
           if (style.display == 'none') el.remove();
         });
+
         return clone.outerHTML;
       }
 
