@@ -74,25 +74,22 @@ export async function exec(name, args, cb) {
 
     let hitRateLimit = false;
     let resp;
+
     try {
       resp = await askAI(name, args);
       console.log('AI resp:', resp);
     } catch(e) {
-      console.error('AI error:' + e);
+      console.error('AI error:', e);
       console.log('AI error retries left:', retries);
 
-      if (e.code == 'rate_limit_exceeded'
-          && retries > 0) {
-
+      if (e.code == 'rate_limit_exceeded' && retries > 0) {
         observedRateLimit *= 0.9;
         console.log('Query rate limit hit, set new observedRateLimit:', observedRateLimit);
         hitRateLimit = true;
-        retries--;
-        await sleep(3000);
 
-      } else if (e.code == 'rate_limit_exceeded'
-                 && plan == 'free'
-                 && retries <= 0) {
+      } else if (e.code == 'rate_limit_exceeded' && plan == 'free' && retries <= 0) {
+
+        console.error('Too many errors, giving up on AI query');
 
         setGlobalError(
           'High load! ' +
@@ -109,7 +106,8 @@ export async function exec(name, args, cb) {
       console.log('Check rate limit RETRY');
       setStatus('AI rate limit hit, slowing down...');
       retries--;
-      continue;
+      await sleep(2000);
+
     } else {
       answer = resp.answer;
       await addUsage(resp.usage);

@@ -208,7 +208,12 @@ const checkLoading = async (text, html) => {
       html: html.substr(0, 30000),
       questions: JSON.stringify(job.scrape?.questions || []),
     });
-  return { status: 'ok', answer };
+
+  if (!answer) {
+    return { status: 'error' };
+  } else {
+    return { status: 'ok', answer };
+  }
 }
 
 const runScrape = async (job, urls, percentAdd) => {
@@ -380,7 +385,7 @@ const saveConsole = (key, args) => {
 }
 
 (() => {
-  const devMode = false && !('update_url' in chrome.runtime.getManifest());
+  const devMode = !('update_url' in chrome.runtime.getManifest());
   if (devMode) return;
 
   for (const key of ['log', 'warn', 'error']) {

@@ -34,6 +34,7 @@ import { runJob, runGather, runScrape, sendStopMessage } from '../../lib/job.mjs
 import { genJob, genBlankJob, genJobFromUrls } from '../../lib/gen.mjs';
 import { formatNumber, getJobColumn } from '../../lib/util.mjs';
 import { getActiveTab, getTabData } from '../../lib/navigation.mjs';
+import { setGlobalError } from '../../lib/errors.mjs';
 import {
   getKey,
   setKey,
@@ -930,8 +931,14 @@ const Welcome = ({ onStart, onSkip }) => {
     setLoading(true);
     const page = isActive ? (await getTabData()) : null;
     const useUrl = isActive ? (await getActiveTab()).url : url;
-    const job = await genJob(prompt, useUrl, page);
-    onStart(job);
+    try {
+      const job = await genJob(prompt, useUrl, page);
+      onStart(job);
+    } catch (e) {
+      setGlobalError('Erorr generating job, try again: ' + e);
+      setLoading(false);
+      throw e;
+    }
   };
 
   const handleExample = (e, prompt, url) => {

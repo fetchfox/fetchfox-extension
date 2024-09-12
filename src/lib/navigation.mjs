@@ -317,7 +317,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         // Check if its loaded
         console.log('== check if loaded ==');
         // const status = 'xyz';
-        const status = await new Promise((ok) => {
+        const resp = await new Promise((ok) => {
           chrome.runtime.sendMessage(
             {
               action: 'checkLoading',
@@ -326,11 +326,11 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
             },
             (resp) => {
               console.log('checkloading said:', resp);
-              ok(resp.answer?.status);
+              ok(resp);
             });
         });
 
-        if (status == 'done') {
+        if (resp.answer?.status == 'done' || resp.status == 'error') {
           console.log('== checkLoading done! break ==');
 
           if (i > 0) {

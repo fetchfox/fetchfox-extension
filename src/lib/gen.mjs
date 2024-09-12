@@ -16,6 +16,10 @@ export const genJob = async (scrapePrompt, url, page) => {
       count,
     });
 
+  if (!answer) {
+    throw 'No answer for generate job';
+  }
+
   const job = {
     id: await sendNextIdMessage(),
     name: (new URL(url)).hostname + ' - ' + (answer?.itemSummary || ''),
