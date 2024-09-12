@@ -405,11 +405,6 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         }
       }
 
-      // // Sleep extra on LinkedIn
-      // if (url.indexOf('https://www.linkedin.com') != -1) {
-      //   await sleep(3000);
-      // }
-
       const tags = document.querySelectorAll('a');
       let id = 0;
 

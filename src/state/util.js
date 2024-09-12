@@ -11,7 +11,7 @@ export const useAutoSleepTime = () => {
   const parse = (loadSleepTimes) => {
     console.log('autosleep update loadSleepTimes', job, loadSleepTimes);
     const times = [];
-    for (const target of job?.results?.targets) {
+    for (const target of (job?.results?.targets || [])) {
       const hostname = (new URL(target.url)).hostname;
       if (loadSleepTimes[hostname]) {
         const values = (loadSleepTimes[hostname].times || []).map(parseFloat);
