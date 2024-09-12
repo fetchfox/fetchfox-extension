@@ -299,11 +299,18 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       // via https://chatgpt.com/share/e9a142ab-775d-4f1d-8a84-69f829ffc45c
       const getHtml = (node) => {
         let clone = node.cloneNode(true);
-        for (const tagName of ['style', 'path']) {
+        for (const tagName of ['style', 'path', 'code']) {
           clone
             .querySelectorAll(tagName)
             .forEach(el => el.remove());
         }
+
+        // Remove hidden elements, LinkedIn puts in a bunch of these
+        const els = clone.querySelectorAll('*');
+        els.forEach((el) => {
+          const style = window.getComputedStyle(el);
+          if (style.display == 'none') el.remove();
+        });
         return clone.outerHTML;
       }
 
@@ -315,8 +322,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       let i;
       for (i = 0; shouldCheckLoad & i < maxDynamicWaits; i++) {
         // Check if its loaded
-        console.log('== check if loaded ==');
-        // const status = 'xyz';
+        console.log('== check if loaded ==', { text, html });
         const resp = await new Promise((ok) => {
           chrome.runtime.sendMessage(
             {
@@ -389,13 +395,14 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         }
       }
 
-      // Sleep extra on LinkedIn
-      if (url.indexOf('https://www.linkedin.com') != -1) {
-        await sleep(3000);
-      }
+      // // Sleep extra on LinkedIn
+      // if (url.indexOf('https://www.linkedin.com') != -1) {
+      //   await sleep(3000);
+      // }
 
       const tags = document.querySelectorAll('a');
       let id = 0;
+
       const links = Array.from(tags).map(a => ({
         id: id++,
         html: a.outerHTML.substr(0, 1000),

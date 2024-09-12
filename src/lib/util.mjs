@@ -23,7 +23,8 @@ export const formatNumber = (number, abbrev) => {
 export const splitUrls = (str) => {
   return str
     .split('\n')
-    .map(x => x.trim());
+    .map(x => x.trim())
+    .filter(x => !!x && x != '');
 }
 
 export const parseJsonl = (str) => {

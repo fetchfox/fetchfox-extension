@@ -110,6 +110,8 @@ export const scrapePage = async (
     console.log('clip iteration', offset);
     const result = await scrapeInner(offset++, answer, cb);
 
+    console.log('clip iteration result gave:', result);
+
     console.log('clip scrape inner gave:', result.answer);
     console.log('clip is there more?', result.more);
 
