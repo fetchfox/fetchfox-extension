@@ -191,7 +191,7 @@ export const setScrapeStatus = async (jobId, roundId, urls, val) => {
     jobId,
     (job) => {
       if (!job.results) job.results = { targets: [] };
-      for (const target of job.results.targets) {
+      for (const target of ajob.results.targets) {
         if (urls.includes(target.url)) {
           target.status = val;
           target.roundId = roundId;
@@ -320,7 +320,7 @@ export const setJobResults = async (jobId, { targets, answers }, clearMissing) =
 
       const r = job.results;
       if (r.targets && r.answers) {
-        for (const target of r.targets) {
+        for (const target of (r.targets || [])) {
           if (r.answers[target.url]) {
             target.answer = r.answers[target.url];
 

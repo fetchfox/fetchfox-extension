@@ -41,10 +41,8 @@ export const parseJsonl = (str) => {
 }
 
 export const getJobColumn = (job, header) => {
-  const targets = job?.results?.targets || [];
-
   const col = [];
-  for (const target of targets) {
+  for (const target of job?.results?.targets || []) {
     if (header == 'URL') {
       col.push(target.url);
     } else {
