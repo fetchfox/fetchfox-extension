@@ -956,8 +956,6 @@ const Welcome = ({ onStart, onSkip }) => {
     );
   });
 
-  console.log('jobnodes jobs:', jobs);
-
   const jobNodes = jobs.filter(j => j && j.name && !j.name.startsWith('Untitled'))
     .slice(0, 4)
     .map((j) => {

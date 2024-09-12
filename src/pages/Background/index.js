@@ -2,6 +2,7 @@ import { GATHER_TARGETS_PROMPT, EXAMPLE_LINKS } from '../../lib/constants.mjs';
 import { sleep, splitUrls } from '../../lib/util.mjs';
 import { exec } from '../../lib/ai.mjs';
 import {
+  getKey,
   setKey,
   nextId,
   saveJob,
@@ -200,7 +201,6 @@ const runGather = async (job, tabId, percentFactor) => {
 
 const checkLoading = async (text, html) => {
   const job = await getActiveJob();
-  console.log('checkLoading for', text, html);
   const answer = await exec(
     'checkLoading',
     {
@@ -208,7 +208,6 @@ const checkLoading = async (text, html) => {
       html: html.substr(0, 30000),
       questions: JSON.stringify(job.scrape?.questions || []),
     });
-  console.log('checkLoading resp', answer);
   return { status: 'ok', answer };
 }
 
@@ -348,7 +347,8 @@ const runScrape = async (job, urls, percentAdd) => {
   setPercent(null);
 }
 
-const consoleMessages = [];
+let consoleMessages = [];
+let consoleTimeoutId = null;
 const saveConsole = (key, args) => {
   // Do not put any console.log() statements in here
 
@@ -359,19 +359,31 @@ const saveConsole = (key, args) => {
   ].join('\t').substr(0, 5000); // max 5kB per message
   consoleMessages.push(message);
 
-  const l = consoleMessages.length;
-  const max = 100000;
-  if (l > max) {
-    consoleMessages = consoleMessages.slice(l - max);
-  }
+
+  // Buffer and write
+  if (consoleTimeoutId) clearTimeout(consoleTimeoutId);
+
+  consoleTimeoutId = setTimeout(
+    async () => {
+      const prev = (await getKey('consoleMessages')) || [];
+      consoleMessages = prev.concat(consoleMessages);
+
+      const l = consoleMessages.length;
+      const max = 100000;
+      if (l > max) {
+        consoleMessages = consoleMessages.slice(l - max);
+      }
+
+      setKey('consoleMessages', consoleMessages);
+      consoleMessages = [];
+    }, 1000);
 }
 
 (() => {
-  const devMode = !('update_url' in chrome.runtime.getManifest());
+  const devMode = false && !('update_url' in chrome.runtime.getManifest());
   if (devMode) return;
 
   for (const key of ['log', 'warn', 'error']) {
-    console.log('Replace bg console', key);
     const original = console[key];
     console[key] = (...args) => {
       original(...args);
@@ -381,5 +393,6 @@ const saveConsole = (key, args) => {
 })();
 
 const reportBug = async () => {
-  return sendReport(consoleMessages.join('\n'));
+  const messages = (await getKey('consoleMessages')) || [];
+  return sendReport(messages.join('\n'));
 }
