@@ -23,6 +23,8 @@ import { getRoundId, isActive, runStopListeners, advanceRound } from '../../lib/
 import { nameTemplate } from '../../lib/templates.mjs';
 import { sendReport } from '../../lib/report.mjs';
 
+import { initSentry } from '../../lib/errors.mjs';
+initSentry();
 
 chrome.runtime.onMessage.addListener(function (req, sender, sendResponse) {
   if (req.action != 'console') console.log('bg got message:', req);
@@ -355,7 +357,9 @@ const runScrape = async (job, urls, percentAdd) => {
 let consoleMessages = [];
 let consoleTimeoutId = null;
 const saveConsole = (key, args) => {
-  return; // Disable for now
+  // Disable for now
+  setKey('consoleMessages', []);
+  return;
 
   // Do not put any console.log() statements in here
 

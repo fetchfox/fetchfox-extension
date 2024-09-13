@@ -24,3 +24,6 @@
 secrets.*.js
 
 Makefile
+
+# Sentry Config File
+.env.sentry-build-plugin

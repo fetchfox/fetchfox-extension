@@ -4,6 +4,9 @@ import { createRoot } from 'react-dom/client';
 import Popup from './Popup';
 import './index.css';
 
+import { initSentry } from '../../lib/errors.mjs';
+initSentry();
+
 (() => {
   const devMode = !('update_url' in chrome.runtime.getManifest());
   if (devMode) return;
