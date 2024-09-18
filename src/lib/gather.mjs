@@ -76,9 +76,7 @@ export const parseLinks = async (page, question, cb) => {
   });
 
   const expander = item => {
-    console.log('expand:', item, page.links);
     const m = page.links.filter(x => x.id == item.id);
-    console.log('expand m:', m);
     return m.length > 0 ? m[0] : item;
   }
 
@@ -110,7 +108,7 @@ export const parseLinks = async (page, question, cb) => {
     console.log('gather cb', i, chunked.length, i / chunked.length);
     if (cb) cb(cleanLinks(matches), i / chunked.length);
 
-    await setStatus(`Crawl stage completed ${i+1}/${chunked.length} chunks`);
+    await setStatus(`Crawl stage working, ${i+1}/${chunked.length} chunks`);
   }
 
   return dedupeLinks(matches);

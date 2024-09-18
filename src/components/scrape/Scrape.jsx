@@ -769,14 +769,14 @@ const Results = ({
       </th>)
     ));
 
+  const numResults = targets ? targets.length : 0;
+
   let rows;
-  if (!targets || !targets.length) {
+  if (numResults == 0) {
     rows = (
       <tr>
-        <td colSpan={headerNodes.length}>no results yet</td>
       </tr>
-
-    )
+    );
   } else {
 
     rows = [];
@@ -850,8 +850,34 @@ const Results = ({
     }
   }
 
+  const counts = {
+    total: 0,
+    scraped: 0,
+    error: 0,
+  }
+
+  for (const target of (targets || [])) {
+    counts.total++;
+    if (target.status == 'scraped') {
+      counts.scraped++;
+    } else if (target.status == 'error') {
+      counts.error++;
+    }
+  }
+
+  let countsStr = '';
+  countsStr += counts.total + ' ' + (counts.total == 1 ? 'result' : 'results');
+  countsStr += ' (' + counts.scraped + ' scraped';
+  if (counts.error > 0) {
+    countsStr += ', ' + counts.error + ' error'+ (counts.error == 1 ? '' : 's');
+  }
+  countsStr += ')';
+
   return (
     <div style={{ overflowX: 'scroll', margin: '10px 0' }}>
+
+      <div style={{ margin: '5px 0' }}>{countsStr}</div>
+
       <table style={{ width: '100%' }}>
         <thead><tr>{headerNodes}</tr></thead>
         <tbody>{rows}</tbody>
