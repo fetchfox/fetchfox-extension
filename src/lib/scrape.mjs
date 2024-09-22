@@ -7,6 +7,7 @@ import { scrapeTemplate } from './templates.mjs';
 export const scrapePage = async (
   page,
   questions,
+  perPage,
   itemDescription,
   extraRules,
   cb) =>
@@ -26,17 +27,18 @@ export const scrapePage = async (
   };
 
 
-  const clip = 180000;
+  const clip = 170000;
   const len = page.text.length + page.html.length;
+  const textChunkSize =  45000;
+  const htmlChunkSize = 115000;
 
   console.log('clip should we clip?', len, clip);
   console.log('clip len text', page.text.length);
   console.log('clip len html', page.html.length);
 
-  const scrapeInner = async (offset, existing, cb) => {
-    const textChunkSize =  50000;
-    const htmlChunkSize = 120000;
+  let expectedItemCount;
 
+  const scrapeInner = async (offset, existing, cb) => {
     const text = page.text.slice(
       offset * textChunkSize,
       (offset + 1) * textChunkSize);
@@ -45,9 +47,15 @@ export const scrapePage = async (
       offset * htmlChunkSize,
       (offset + 1) * htmlChunkSize);
 
+    const perPageCopy = (
+      perPage == 'multiple' ?
+        'You should look for MULTIPLE items on this page, expect itemCount > 1' :
+        'You should look for a SINGLE item on this page, expect itemCount == 1');
+
     const context = {
       url: page.url,
       questions: JSON.stringify(translateToHeaders(questions), null, 2),
+      perPageCopy,
       text,
       html,
       extraRules,
@@ -67,9 +75,23 @@ export const scrapePage = async (
       'scrape',
       context,
       async (partial) => {
+        if (partial?.length && partial[0].itemCount) {
+          expectedItemCount = partial[0].itemCount;
+        }
+
         if (cb && partial && partial.length > prevLength) {
           if (!await isActive(roundId)) return answer;
-          cb(existing.concat(partial.slice(1)));
+          const items = existing.concat(partial.slice(1));
+
+          let percent = items.length / expectedItemCount;
+          // Slow down percent above cap in case AI mis-estimated
+          const cap = 0.5;
+          if (percent > cap) {
+            percent = cap + ((percent - cap) * 0.5);
+          }
+          
+          cb({ items, percent });
+          console.log(`clip partial ${items.length} of expected ${expectedItemCount}`);
           prevLength = partial.length;
         }
       });
@@ -105,13 +127,15 @@ export const scrapePage = async (
   let answer = [];
   let offset = 0;
 
-  // max 3 iterations
-  for (let i = 0; i < 3; i++) {
-    console.log('clip iteration', offset);
+  const max = perPage == 'single' ? 3 : 10;
+  const numTextCunks = page.text.length / textChunkSize;
+  const numHtmlCunks = page.html.length / htmlChunkSize;
+  const numChunks = Math.ceil(Math.min(max, Math.max(numTextCunks, numHtmlCunks)));
+  for (let i = 0; i < max; i++) {
+    console.log(`clip iteration ==> ${offset}/${numChunks}`);
     const result = await scrapeInner(offset++, answer, cb);
 
     console.log('clip iteration result gave:', result);
-
     console.log('clip scrape inner gave:', result.answer);
     console.log('clip is there more?', result.more);
 

@@ -202,6 +202,9 @@ const runGather = async (job, tabId, percentFactor) => {
 };
 
 const checkLoading = async (text, html) => {
+  // TODO: re-enable this after dev done
+  // return { status: 'ok', answer: { status: 'done' } };
+
   const job = await getActiveJob();
   const answer = await exec(
     'checkLoading',
@@ -286,6 +289,7 @@ const runScrape = async (job, urls, percentAdd) => {
       result = await scrapePage(
         page,
         job.scrape.questions,
+        job.scrape.perPage || 'single',
         itemDescription,
         extraRules,
         cb);
@@ -313,8 +317,13 @@ const runScrape = async (job, urls, percentAdd) => {
       p.push(fn(
         url,
         index,
-        (partialItems) => {
-          setScrapeAnswer(job.id, url, partialItems);
+        ({ items, percent }) => {
+          console.log('partial partialItems', items, percent);
+          setScrapeAnswer(job.id, url, items);
+
+          if (percent) {
+            setPercent(percent, 0, 1);
+          }
         }));
       if (usingActive) await sleep(2000);
     }
@@ -339,9 +348,11 @@ const runScrape = async (job, urls, percentAdd) => {
       await setScrapeStatus(job.id, roundId, [url], 'scraped');
       await setScrapeAnswer(job.id, url, result);
     }
+
     await setStatus(
       (result.error ? 'Error' : 'Scraped') +
       ' (' + next + '/' + urls.length + ') ' + url, roundId,  -1);
+
     await setPercent(
       percentAdd + ((done / urls.length) * (1 - percentAdd)),
       done,

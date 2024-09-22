@@ -32,6 +32,9 @@ export const getPageData = async (url, options) => {
 const getPageDataIteration = async (url, options) => {
   const { active, onCreate, sleepTime } = options || {};
   const tabWithUrl = await getTabWithUrl(url);
+
+  console.log('lll tabWithUrl?', tabWithUrl);
+
   if (tabWithUrl) {
     return getTabData(tabWithUrl.id, { shouldClose: false, sleepTime });
   }
@@ -210,10 +213,20 @@ export const getActiveTab = async () => {
 }
 
 export const getTabWithUrl = async (url) => {
+  let u = new URL(url);
+  // Query without hash
+  const noHash = url.replace(u.hash, '');
   return new Promise((ok) => {
     chrome.tabs.query(
-      { url },
-      (tabs) => ok(tabs[0] ? tabs[0] : null));
+      { url: noHash },
+      (tabs) => {
+        console.log('lll got tabs after query', url, tabs);
+        // Check for hash match
+        for (let tab of (tabs || [])) {
+          if (tab.url == url) ok(tab);
+        }
+        ok(null);
+      });
   });
 }
 

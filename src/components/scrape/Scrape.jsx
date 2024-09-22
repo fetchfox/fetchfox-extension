@@ -14,11 +14,13 @@ import {
   TbFileArrowRight,
 } from 'react-icons/tb';
 import { TiDelete } from 'react-icons/ti';
+import { HiMiniPencilSquare } from 'react-icons/hi2';
 import {
   FaCircleStop,
   FaFileCsv,
   FaShareFromSquare,
   FaCircleMinus,
+  FaPencil,
 } from 'react-icons/fa6';
 import {
   FaPlus,
@@ -232,7 +234,7 @@ const StatusBar = ({ onRun }) => {
                   }}>
         <div>
           {Math.round(100*percent)}%
-          {percent && completion?.done && completion?.total &&
+          {percent && !!completion?.done && !!completion?.total &&
             <span> ({completion.done}/{completion.total})</span>
            }
         </div>
@@ -357,9 +359,11 @@ const UrlsStep = ({ job, isPopup }) => {
     const activeTab = await getActiveTab();
     if (activeTab) {
       if (action == 'gather') {
-        updateUrl(activeTab.url + '\n' + url);
+        // updateUrl(activeTab.url + '\n' + url);
+        updateUrl(activeTab.url);
       } else if (action == 'manual') {
-        updateManualUrls(activeTab.url + '\n' + manualUrls);
+        // updateManualUrls(activeTab.url + '\n' + manualUrls);
+        updateManualUrls(activeTab.url);
       }
     }
   }
@@ -404,39 +408,40 @@ const UrlsStep = ({ job, isPopup }) => {
   );
 
   const currentButtonNode = (
-    <div style={{ position: 'absolute', right: 3, top: 3 }}>
+    <div style={{ position: 'absolute', right: 3, top: 7, background: 'white', }}>
       <button
         className="btn btn-gray"
         style={{ display: 'flex',
                  alignItems: 'center',
                  justifyContent: 'center',
                  padding: '2px 8px',
+                 color: 'white',
                }}
         onClick={handleCurrent}
         >
-        <FiPlus size={12} />&nbsp;Current
+        Current
       </button>
     </div>
   )
 
   const gatherNode = (
     <div>
-      <p>Where should we start crawling? (one URL per row)</p>
+      <p>Where should we start crawling?</p>
       <div style={{ position: 'relative' }}>
         {showCurrentButton && currentButtonNode}
-        <textarea
+        <input
           style={{ width: '100%',
-                   minHeight: 80,
                    fontFamily: 'sans-serif',
                    resize: 'none',
-                   padding: '4px 8px',
+                   padding: '8px',
                    border: 0,
-                   borderRadius: 2,
+                   borderRadius: 4,
                  }}
           placeholder={'https://example.com/category/page/1\nhttps://example.com/category/page/2\n...'}
           value={url}
           onChange={(e) => updateUrl(e.target.value)}
-          type="text" />
+          type="text"
+        />
       </div>
 
       {questionNode}
@@ -455,9 +460,22 @@ const UrlsStep = ({ job, isPopup }) => {
 
   const manualNode = (
     <div>
-      <p>Enter a list of URLs to scrape (one per row)</p>
+      <p>We will only scrape the current page</p>
       <div style={{ position: 'relative' }}>
-        {showCurrentButton && currentButtonNode}
+        {/*showCurrentButton && currentButtonNode*/}
+
+        <div style={{ background: '#fff2',
+                      padding: 10,
+                      margin: '10px 0',
+                      borderRadius: 10,
+                      fontSize: 14,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+          {manualUrls}
+        </div>
+
+        {/*
         <textarea
           style={{ width: '100%',
                    minHeight: 80,
@@ -474,6 +492,7 @@ https://www.example.com/page-2
           onChange={(e) => updateManualUrls(e.target.value)}
           value={manualUrls}
         />
+        */}
       </div>
 
       {questionNode}
@@ -488,8 +507,8 @@ https://www.example.com/page-2
       <div style={stepHeaderStyle}>What do you want to scrape?</div>
 
       <Pills value={action} onChange={updateAction}>
-        <div key="gather">Crawl for URLs</div>
-        <div key="manual">Manually Enter URLs</div>
+        <div key="manual">Current Page Only</div>
+        <div key="gather">Linked Pages</div>
       </Pills>
 
       {action == 'gather' && gatherNode}
@@ -601,6 +620,61 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
     );
   });
 
+  const controlsNode = (
+    <div style={{ display: 'flex', flexDirection: 'row', gap: 5 }}>
+      <div style={{ width: '60%' }}>
+        <p>Max tabs at once. Reduce if you hit rate limits.</p>
+        <select
+          style={{ width: '100%' }}
+          value={concurrency}
+          onChange={(e) => updateConcurrency(e.target.value)}
+          >
+          <option value=""></option>
+          <optgroup label="Foreground tabs">
+            <option value={-1}>1 foreground tab</option>
+            <option value={-2}>2 foreground tabs</option>
+            <option value={-3}>3 foreground tabs</option>
+            <option value={-5}>5 foreground tabs</option>
+            <option value={-10}>10 foreground tabs (careful!)</option>
+          </optgroup>
+          <optgroup label="Background tabs">
+            <option value={1}>1 (slowest, least likely to be blocked)</option>
+            <option value={2}>2 </option>
+            <option value={3}>3 (default)</option>
+            <option value={5}>5 </option>
+          </optgroup>
+          <optgroup label="Danger Zone - Sites may block you at these rates">
+            <option value={10}>10 (very fast, some sites may block)</option>
+            <option value={25}>25 (even faster, many sites will block)</option>
+            <option value={50}>50 (warp speed! you're gonna see some captchas)</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div style={{ width: '40%' }}>
+        <p>Wait time before extraction</p>
+        <select
+          style={{ width: '100%' }}
+          value={sleepTime}
+          onChange={(e) => updateSleepTime(e.target.value)}
+          >
+          <option value=""></option>
+          <optgroup label="Automatically adjust">
+            <option value="auto">
+              Auto
+              {autoSleepTime?.pretty && ` (${autoSleepTime.pretty})`}
+            </option>
+          </optgroup>
+          <optgroup label="Manual">
+            <option value={2000}>2 seconds</option>
+            <option value={5000}>5 seconds</option>
+            <option value={10000}>10 seconds</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+  );
+
   const handleClick = async () => {
     let urls = job.results.targets
       .filter(t => t.status != 'scraped')
@@ -631,58 +705,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
         <FiPlus size={14} />&nbsp;Add Field
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'row', gap: 5 }}>
-        <div style={{ width: '60%' }}>
-          <p>Max tabs at once. Reduce if you hit rate limits.</p>
-          <select
-            style={{ width: '100%' }}
-            value={concurrency}
-            onChange={(e) => updateConcurrency(e.target.value)}
-            >
-            <option value=""></option>
-            <optgroup label="Foreground tabs">
-              <option value={-1}>1 foreground tab</option>
-              <option value={-2}>2 foreground tabs</option>
-              <option value={-3}>3 foreground tabs</option>
-              <option value={-5}>5 foreground tabs</option>
-              <option value={-10}>10 foreground tabs (careful!)</option>
-            </optgroup>
-            <optgroup label="Background tabs">
-              <option value={1}>1 (slowest, least likely to be blocked)</option>
-              <option value={2}>2 </option>
-              <option value={3}>3 (default)</option>
-              <option value={5}>5 </option>
-            </optgroup>
-            <optgroup label="Danger Zone - Sites may block you at these rates">
-              <option value={10}>10 (very fast, some sites may block)</option>
-              <option value={25}>25 (even faster, many sites will block)</option>
-              <option value={50}>50 (warp speed! you're gonna see some captchas)</option>
-            </optgroup>
-          </select>
-        </div>
-
-        <div style={{ width: '40%' }}>
-          <p>Wait time before extraction</p>
-          <select
-            style={{ width: '100%' }}
-            value={sleepTime}
-            onChange={(e) => updateSleepTime(e.target.value)}
-            >
-            <option value=""></option>
-            <optgroup label="Automatically adjust">
-              <option value="auto">
-                Auto
-                {autoSleepTime?.pretty && ` (${autoSleepTime.pretty})`}
-              </option>
-            </optgroup>
-            <optgroup label="Manual">
-              <option value={2000}>2 seconds</option>
-              <option value={2000}>5 seconds</option>
-              <option value={10000}>10 seconds</option>
-            </optgroup>
-          </select>
-        </div>
-      </div>
+      {job.urls?.action == 'gather' && controlsNode}
 
       {job.urls.action == 'gather' && <div style={{ marginTop: 10 }}>
         <button
@@ -758,7 +781,7 @@ const Results = ({
   headerNodes.push(
     <th key="url" style={urlStyle}>
       URL
-      {targets && targets.length > 0 && newScrapeNode('URL')}
+      {/*targets && targets.length > 0 && newScrapeNode('URL')*/}
     </th>);
   headerNodes.push(<th key="text">Link Text</th>);
   headerNodes = headerNodes.concat(
@@ -806,7 +829,7 @@ const Results = ({
           <div style={{ width: 80, textAlign: 'center' }}>
             {target.loading && <Loading width={14} />}
             {!target.loading && target.status}
-            {num && num > 1 ? (' (' + num + ')') : ''}
+            {/*num && num > 1 ? (' (' + num + ')') : ''*/}
           </div>
         </td>
       );
@@ -857,21 +880,33 @@ const Results = ({
   }
 
   for (const target of (targets || [])) {
+
+    console.log('count', target, counts);
+
     counts.total++;
-    if (target.status == 'scraped') {
+    for (const a of (target.answer || [])) {
       counts.scraped++;
-    } else if (target.status == 'error') {
+    }
+    if (target.status == 'error') {
       counts.error++;
     }
   }
 
   let countsStr = '';
-  countsStr += counts.total + ' ' + (counts.total == 1 ? 'result' : 'results');
-  countsStr += ' (' + counts.scraped + ' scraped';
-  if (counts.error > 0) {
-    countsStr += ', ' + counts.error + ' error'+ (counts.error == 1 ? '' : 's');
+
+  if (job.scrape?.scrapeType == 'multiPage') {
+    countsStr += counts.total + ' ' + (counts.total == 1 ? 'result' : 'results');
+    countsStr += ' (' + counts.scraped + ' scraped';
+    if (counts.error > 0) {
+      countsStr += ', ' + counts.error + ' error'+ (counts.error == 1 ? '' : 's');
+    }
+    countsStr += ')';
+  } else {
+    countsStr = counts.scraped + ' results';
+    if (counts.error > 0) {
+      countsStr += ' (' + counts.error + ' error'+ (counts.error == 1 ? '' : 's') + ')';g
+    }
   }
-  countsStr += ')';
 
   return (
     <div style={{ overflowX: 'scroll', margin: '10px 0' }}>
@@ -959,6 +994,9 @@ const Welcome = ({ onStart, onSkip }) => {
     const useUrl = isActive ? (await getActiveTab()).url : url;
     try {
       const job = await genJob(prompt, useUrl, page);
+
+      console.log('==== DONE ====');
+      console.log('genjob gave:', job);
       onStart(job);
     } catch (e) {
       setGlobalError('Erorr generating job, try again: ' + e);
@@ -1158,12 +1196,9 @@ const Inner = ({
   }
 
   const handleRun = async () => {
-    console.log('handleRun');
-
     if (isPopup && job.scrape?.concurrency < 0) {
       await openPanel();
     }
-    
     runJob(job);
   };
 
@@ -1214,7 +1249,7 @@ const Inner = ({
             onClick={onNewJob}
             >
             <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 5}}>
-              <IoMdArrowBack /> Back
+              <HiMiniPencilSquare size={14} /> New Scrape
             </div>
           </button>
 

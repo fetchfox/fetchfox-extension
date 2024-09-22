@@ -1,6 +1,7 @@
 export const getTemplate = (name) => {
   return {
     genJob: genJobTemplate,
+    genJob2: genJob2Template,
     gather: gatherTemplate,
     scrape: scrapeTemplate,
     name: nameTemplate,
@@ -82,6 +83,79 @@ Scrape {{url}} for {{prompt}}
 {{html}}
 `;
 
+export const genJob2Template = `You are part of a web scraping program, and your job is to take a "master prompt" from the user, and generate the JSON job definition for the web scrape.
+
+You will receive a prompt from the user, describing what they wish to scrape.
+
+You will also receive information about the starting page of the scrape, including its URL, HTML, and text.
+
+You will return a JSON object with the following fields, in this order:
+
+- "intentAnalysis": A 10-30 word summary of the user's likely intent, given the user prompt and the page information.
+- "itemDescription": A 2-5 word description of the items the user is trying to scrape. Try to infer the general item based on the intent.
+- "detailFields": An array defining the fields the user is looking for related to the item.
+- "dataAvailability": For each item in "detailFields", say whether it is likely present on the current page ("currentPage"), or a page LINKED from the current page ("linkedPage")
+- "scrapeTypeGuess": Either "singlePage" or "multiPage". Respond with "singlePage" if the current page has all the items, and all the DETAILS the user wants to scrape. Respond with "multiPage" if these items are LINKED from the current page, and the LINKED pages are needed to get ALL the details the user is looking for. This is your first guess, which you will have a chance to revise.
+- "scrapeTypeReason": Explain in 5-15 words why you made your guess in "scrapeTypeGuess".
+- "scrapeType": Your FINAL answer for the scrape type, either "singlePage" or "multiPage". Change only if you need to after thinking about it in "scrapeTypeReason"
+- "gatherPrompt": If this is "singlePage", return "". If this is "multiPage", describe how to find the linked pages that contain all the detail fields. Exclusions are important to clear up confusion.
+
+Example output 1:
+{
+  "intentAnalysis": "The user is likely looking for ratings and information about products to evaluate which one to buy",
+  "itemDescription": "Product reviews and information",
+  "detailFields": [
+    "What is the name of this product?",
+    "What is the rating of this product? Format: X.X/X",
+    "Who made this product?",
+    "What is the price of this product? Format: $XX.XX"
+  ],
+  "dataAvailability": {
+    "What is the name of this product?": "currentPage",
+    "What is the rating of this product? Format: X.X/X": "linkedPage",
+    "Who made this product?": "currentPage",
+    "What is the price of this product? Format: $XX.XX": "linkedPage"
+  },
+  "scrapeTypeGuess": "multiPage",
+  "scrapeTypeReason": "The product rating and price are only available on the indivdiual pages",
+  "scrapeType": "multiPage",
+  "gatherPrompt": "Find links to products. Ignore category links, page navigation, and advertisements"
+}
+
+Example output 2:
+{
+  "intentAnalysis": "The user wants to find candidates for a job based on the results from a search page",
+  "itemDescription": "Job applicant candidates",
+  "detailFields": [
+    "What is the name of this person?",
+    "What is this person's current employer?",
+    "What is this peerson's current job title?",
+    "What is the full URL of their profile?"
+  ],
+  "dataAvailability": {
+    "What is the name of this person?": "currentPage",
+    "What is this person's current employer?": "currentPage",
+    "What is this peerson's current job title?": "currentPage",
+    "What is the full URL of their profile?": "currentPage"
+  },
+  "scrapeTypeGuess": "singlePage",
+  "scrapeTypeReason": "All the data is available on the current page, so I don't need to load extra pages",
+  "scrapeType": "singlePage",
+  "gatherPrompt": ""
+}
+
+Page URL: {{url}}
+
+Page HTML: {{html}}
+
+Page text: {{text}}
+
+User prompt: {{prompt}}
+
+You MUST respond with ONLY the JSON object, no comments, no explanation. Otherwise you fail the task.
+
+`;
+
 export const gatherTemplate = `You are part of a web crawling program, and your goal is to pick out relevant links in a list. The list contains the inner text of links, and also their URLs. You will take this list, look for links that match the user prompt, and generate a new list of only the matching items.
 
 Your response will be ONLY the "id" field of matching items. The "id" field will be used to generate the results later, you only need to include the "id" field.
@@ -123,7 +197,6 @@ Follow these important rules:
 - Please make sure the response is valid JSONL. Only ONE JSON object per line. Remove any \n characters in questions and answers.
 - Use the SAME keys for each item as you find in the questions dictionary.
 - Do NOT fix spelling errors in the item keys. If the questions contain typos, spelling errors, or other mistakes, keep those in the item dictionary keys.
-- Maximum 20 items
 
 {{extraRules}}
 
@@ -139,6 +212,8 @@ Example of a valid response with a single item:
 Below is the user prompts. Prompt directive lines are preceded by >>>>
 
 >>>> {{itemDescription}}
+
+>>>> {{perPageCopy}}
 
 >>>> Below are the questions for each item(s):
 

@@ -7,18 +7,25 @@ import { sendNextIdMessage } from './job.mjs';
 export const genJob = async (scrapePrompt, url, page) => {
   const count = 5000;
 
-  const text = page?.text || ''
-  const html = page?.html || ''
+  const text = page?.text || '';
+  const html = page?.html || '';
+
+  // console.log('page', page);
+  // return;
 
   const answer = await exec(
-    'genJob',
+    'genJob2',
     {
       url,
-      prompt: scrapePrompt,
+      prompt: scrapePrompt || '(not given, guess based on the page content)',
       text: text.substr(0, 30000),
       html: html.substr(0, 6000),
       count,
-    });
+    },
+    null,
+    'gpt-4o');
+
+  console.log('GEN JOB 2 GAVE', await answer);
 
   if (!answer) {
     throw 'No answer for generate job';
@@ -26,18 +33,42 @@ export const genJob = async (scrapePrompt, url, page) => {
 
   const job = {
     id: await sendNextIdMessage(),
-    name: (new URL(url)).hostname + ' - ' + (answer?.itemSummary || ''),
+    name: (new URL(url)).hostname + ' - ' + (answer?.itemDescription || ''),
     urls: {
-      action: 'gather',
+      manualUrls: url,
       url: url,
-      list: [],
-      question: (answer?.gatherPrompt || 'Error, try again'),
     },
     scrape: {
       action: 'scrape',
       questions: (answer?.detailFields || ['Error: try again']),
     },
   };
+
+  if (answer?.scrapeType == 'singlePage') {
+    job.urls.action = 'manual';
+    job.urls.question = answer.itemDescription;
+    job.scrape.perPage = 'multiple';
+    job.scrape.concurrency = -1;
+  } else if (answer?.scrapeType == 'multiPage') {
+    job.urls.action = 'gather',
+    job.urls.question = answer.itemDescription + ': ' + answer.gatherPrompt;
+    job.scrape.perPage = 'single';
+  }
+
+  // const job = {
+  //   id: await sendNextIdMessage(),
+  //   name: (new URL(url)).hostname + ' - ' + (answer?.itemSummary || ''),
+  //   urls: {
+  //     action: 'gather',
+  //     url: url,
+  //     list: [],
+  //     question: (answer?.gatherPrompt || 'Error, try again'),
+  //   },
+  //   scrape: {
+  //     action: 'scrape',
+  //     questions: (answer?.detailFields || ['Error: try again']),
+  //   },
+  // };
 
   return job;
 }
