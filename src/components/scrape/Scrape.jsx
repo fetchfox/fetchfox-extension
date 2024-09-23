@@ -34,7 +34,7 @@ import {
 import { HiArrowsExpand } from 'react-icons/hi';
 import { runJob, runGather, runScrape, sendStopMessage } from '../../lib/job.mjs';
 import { genJob, genBlankJob, genJobFromUrls } from '../../lib/gen.mjs';
-import { formatNumber, getJobColumn } from '../../lib/util.mjs';
+import { formatNumber, getJobColumn, getJobUrl } from '../../lib/util.mjs';
 import { getActiveTab, getTabData } from '../../lib/navigation.mjs';
 import { setGlobalError } from '../../lib/errors.mjs';
 import {
@@ -1384,11 +1384,30 @@ export const Scrape = ({ isPopup }) => {
   }, [openAiKey, openAiPlan, loadingOpenAiKey]);
 
   useEffect(() => {
-    getKey('scrapeStep').then((s) => {
-      setLoading(false);
-      setStep(s);
-    });
-  }, []);
+
+    if (!activeJob) return;
+
+    getActiveTab()
+      .then((tab) => {
+        const jobUrl = getJobUrl(activeJob) || '';
+        const tabUrl = tab ? tab.url : '';
+        const tabHostname = tabUrl ? (new URL(tabUrl)).hostname : '';
+
+        if (jobUrl && jobUrl.indexOf(tabHostname) == -1) {
+          // New domain, assume new job
+          setLoading(false);
+          setStep('welcome');
+          return;
+        } else {
+          // Pick up where we left off
+          getKey('scrapeStep').then((s) => {
+            setLoading(false);
+            setStep(s);
+          });
+        }
+      });
+
+  }, [activeJob]);
 
   const handleSkip = async () => {
     if (!activeJob) {

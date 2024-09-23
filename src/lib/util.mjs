@@ -55,3 +55,14 @@ export const getJobColumn = (job, header) => {
 
   return col;
 }
+
+export const getJobUrl = (job) => {
+  if (job.urls?.action == 'gather') {
+    return job.urls?.url;
+  } else if (job.urls?.action == 'current') {
+    return job.urls?.currentUrl;
+  } else if (job.urls?.action == 'manual') {
+    return job.urls?.manualUrls;
+  }
+  return '';
+}
