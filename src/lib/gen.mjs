@@ -45,7 +45,7 @@ export const genJob = async (scrapePrompt, url, page) => {
   };
 
   if (answer?.scrapeType == 'singlePage') {
-    job.urls.action = 'manual';
+    job.urls.action = 'current';
     job.urls.question = answer.itemDescription;
     job.scrape.perPage = 'multiple';
     job.scrape.concurrency = -1;

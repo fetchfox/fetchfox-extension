@@ -85,7 +85,7 @@ export const scrapePage = async (
 
           let percent = items.length / expectedItemCount;
           // Slow down percent above cap in case AI mis-estimated
-          const cap = 0.5;
+          const cap = 0.7;
           if (percent > cap) {
             percent = cap + ((percent - cap) * 0.5);
           }

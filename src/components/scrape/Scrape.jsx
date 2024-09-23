@@ -111,6 +111,12 @@ const smallButtonStyle = {
   fontSize: 12,
 }
 
+const maybeOpenPanel = async (job) => {
+  if (!(job.scrape?.concurrency < 0)) return;
+  if (job.urls?.action == 'current') return;
+  return openPanel();
+}
+
 const openPanel = async () => {
   const activeTab = await getActiveTab();
   chrome.sidePanel.open(
@@ -233,7 +239,7 @@ const StatusBar = ({ onRun }) => {
                     top: 6,
                   }}>
         <div>
-          {Math.round(100*percent)}%
+          {percent && (Math.round(100*percent) + '%')}
           {percent && !!completion?.done && !!completion?.total &&
             <span> ({completion.done}/{completion.total})</span>
            }
@@ -284,12 +290,33 @@ const UrlsStep = ({ job, isPopup }) => {
   const [manualUrls, setManualUrls] = useState('');
   const [manualError, setManualError] = useState();
   const [showCurrentButton, setShowCurrentButton] = useState(false);
+  const [tab, setTab] = useState('gather');
+  const [currentUrl, setCurrentUrl] = useState('');
 
   const timeoutRef = useRef(null);
+
+
+  useEffect(() => {
+    const update = () => {
+      getActiveTab().then(a => {
+        updateUrl(a.url);
+        setCurrentUrl(a.url);
+      });
+    };
+
+    update();
+
+    const on = chrome.webNavigation.onHistoryStateUpdated;
+    on.addListener(update);
+    return () => on.removeListener(update);
+  }, []);
 
   useEffect(() => {
     getActiveTab()
       .then((activeTab) => {
+        setCurrentUrl(activeTab.url);
+        setTab(action);
+
         if (action == 'gather') {
           const exists = !((url || '').split('\n').includes(activeTab.url));
           setShowCurrentButton(exists);
@@ -299,6 +326,11 @@ const UrlsStep = ({ job, isPopup }) => {
         }
       });
   }, [url, action, manualUrls]);
+
+  const updateTabAndAction = (t) => {
+    setTab(t);
+    updateAction(t);
+  }
 
   const numResults = (job?.results?.targets || []).length;
   const currentStep = numResults == 0 ? 1 : 2;
@@ -371,8 +403,8 @@ const UrlsStep = ({ job, isPopup }) => {
   const handleClick = async () => {
     const activeTab = await getActiveTab();
 
-    if (isPopup && job.scrape?.concurrency < 0) {
-      await openPanel();
+    if (isPopup) {
+      await maybeOpenPanel(job);
     }
 
     if (action == 'gather') {
@@ -392,7 +424,7 @@ const UrlsStep = ({ job, isPopup }) => {
 
   const questionNode = (
     <div>
-      <p>What kinds of items should we look for?</p>
+      <p>What kinds of {action == 'gather' ? 'links' : 'items' } should we look for?</p>
       <Textarea
         style={{ width: '100%',
                  fontFamily: 'sans-serif',
@@ -426,8 +458,10 @@ const UrlsStep = ({ job, isPopup }) => {
 
   const gatherNode = (
     <div>
-      <p>Where should we start crawling?</p>
+      <p>Find links on current page</p>
       <div style={{ position: 'relative' }}>
+
+        {/*
         {showCurrentButton && currentButtonNode}
         <input
           style={{ width: '100%',
@@ -442,6 +476,19 @@ const UrlsStep = ({ job, isPopup }) => {
           onChange={(e) => updateUrl(e.target.value)}
           type="text"
         />
+        */}
+
+        <div style={{ background: '#fff3',
+                      padding: '8px',
+                      margin: '10px 0',
+                      borderRadius: 4,
+                      fontSize: 13,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+          {url}
+        </div>
+
       </div>
 
       {questionNode}
@@ -458,31 +505,36 @@ const UrlsStep = ({ job, isPopup }) => {
     </div>
   );
 
-  const manualNode = (
+  const currentNode = (
     <div>
       <p>We will only scrape the current page</p>
       <div style={{ position: 'relative' }}>
-        {/*showCurrentButton && currentButtonNode*/}
-
-        <div style={{ background: '#fff2',
-                      padding: 10,
+        <div style={{ background: '#fff3',
+                      padding: '8px',
                       margin: '10px 0',
-                      borderRadius: 10,
-                      fontSize: 14,
+                      borderRadius: 4,
+                      fontSize: 13,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
-          {manualUrls}
+          {currentUrl}
         </div>
+      </div>
+      {questionNode}
+    </div>
+  );
 
-        {/*
+  const manualNode = (
+    <div>
+      <p>Enter the URLs you would like to scrape (one per row)</p>
+      <div style={{ position: 'relative' }}>
         <textarea
           style={{ width: '100%',
                    minHeight: 80,
                    fontFamily: 'sans-serif',
-                   padding: '4px 8px',
+                   padding: '8px',
                    border: 0,
-                   borderRadius: 2,
+                   borderRadius: 4,
                    marginBottom: 2,
                  }}
           className={manualError ? 'error' : ''}
@@ -492,25 +544,24 @@ https://www.example.com/page-2
           onChange={(e) => updateManualUrls(e.target.value)}
           value={manualUrls}
         />
-        */}
       </div>
 
       {questionNode}
-
       <Error message={manualError} />
-
     </div>
   );
 
   return (
     <div style={stepStyle}>
-      <div style={stepHeaderStyle}>What do you want to scrape?</div>
+      <div style={stepHeaderStyle}>What page do you want to scrape?</div>
 
-      <Pills value={action} onChange={updateAction}>
-        <div key="manual">Current Page Only</div>
+      <Pills value={tab} onChange={updateTabAndAction}>
+        <div key="current">Current Page Only</div>
         <div key="gather">Linked Pages</div>
+        <div key="manual">Manually Enter URLs</div>
       </Pills>
 
+      {action == 'current' && currentNode}
       {action == 'gather' && gatherNode}
       {action == 'manual' && manualNode}
     </div>
@@ -685,8 +736,8 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
         .map(t => t.url);
     }
 
-    if (isPopup && job.scrape?.concurrency < 0) {
-      await openPanel();
+    if (isPopup) {
+      await maybeOpenPanel(job);
     }
 
     return runScrape(job, urls);
@@ -694,7 +745,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
 
   return (
     <div style={stepStyle}>
-      <div style={stepHeaderStyle}>What do you want to scrape on each page?</div>
+      <div style={stepHeaderStyle}>What do you want to scrape on {job.urls?.action == 'current' ? 'this' : 'each'} page?</div>
       {nodes}
 
       <div
@@ -783,7 +834,9 @@ const Results = ({
       URL
       {/*targets && targets.length > 0 && newScrapeNode('URL')*/}
     </th>);
-  headerNodes.push(<th key="text">Link Text</th>);
+
+  // headerNodes.push(<th key="text">Link Text</th>);
+
   headerNodes = headerNodes.concat(
     headers.map(header => (
       <th key={header} style={answerStyle}>
@@ -846,10 +899,11 @@ const Results = ({
             >
             {target.url}
           </td>);
-        cells.push(
-          <td key="linktext" style={{ width: 180, overflow: 'hidden' }}>
-            {target.text}
-          </td>);
+
+        // cells.push(
+        //   <td key="linktext" style={{ width: 180, overflow: 'hidden' }}>
+        //     {target.text}
+        //   </td>);
 
         for (const header of headers) {
           cells.push(
@@ -922,7 +976,7 @@ const Results = ({
 };
 
 
-const Welcome = ({ onStart, onSkip }) => {
+const Welcome = ({ isPopup, onStart, onSkip }) => {
   const [prompt, setPrompt] = useState('');
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState();
@@ -997,7 +1051,7 @@ const Welcome = ({ onStart, onSkip }) => {
 
       console.log('==== DONE ====');
       console.log('genjob gave:', job);
-      onStart(job);
+      return onStart(job);
     } catch (e) {
       setGlobalError('Erorr generating job, try again: ' + e);
       setLoading(false);
@@ -1005,10 +1059,20 @@ const Welcome = ({ onStart, onSkip }) => {
     }
   };
 
-  const handleExample = (e, prompt, url) => {
-    setPrompt(prompt);
-    setUrl(url);
-    handleSubmit(e, prompt, url);
+  const handleExample = async (e, prompt, url) => {
+    await setPrompt(prompt);
+    await setUrl(url);
+    const resp = await handleSubmit(e, prompt, url);
+
+    console.log('example resp', resp);
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.update(tabs[0].id, { url });
+    });
+
+    if (isPopup) {
+      openPanel();
+    }
   }
 
   let i = 0;
@@ -1196,31 +1260,14 @@ const Inner = ({
   }
 
   const handleRun = async () => {
-    if (isPopup && job.scrape?.concurrency < 0) {
-      await openPanel();
+    if (isPopup) {
+      await maybeOpenPanel(job);
     }
     runJob(job);
   };
 
   const currentStep = (job?.results?.targets || []).length == 0 ? 1 : 2;
   const noAnswers = (job?.results?.targets || []).filter(r => !!r.answer).length == 0;
-
-  // if (showSettings) {
-  //   return (
-  //     <div style={mainStyle}>
-  //       {openAiPlan && <div style={{ position: 'fixed', top: 10, right: 10 }}>
-  //         <span
-  //           style={{ cursor: 'pointer' }}
-  //           onClick={() => setShowSettings(false)}
-  //           >
-  //           <IoMdCloseCircle size={24}/>
-  //         </span>
-  //       </div>}
-        
-  //       <OpenAiKeyEntry onDone={() => { setShowSettings(false)}} />
-  //     </div>
-  //   );
-  // }
 
   return (
     <div style={mainStyle}>
@@ -1321,7 +1368,7 @@ export const Scrape = ({ isPopup }) => {
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState();
 
-  const activeJob =  useActiveJob();
+  const activeJob = useActiveJob();
 
   useEffect(() => {
     if (loadingOpenAiKey) return;
@@ -1338,7 +1385,6 @@ export const Scrape = ({ isPopup }) => {
 
   useEffect(() => {
     getKey('scrapeStep').then((s) => {
-      console.log('got scrape step from kvs:', s);
       setLoading(false);
       setStep(s);
     });
@@ -1387,6 +1433,7 @@ export const Scrape = ({ isPopup }) => {
   } else if (step == 'welcome') {
     body = (
       <Welcome
+        isPopup={isPopup}
         onStart={handleStart}
         onSkip={handleSkip}
       />

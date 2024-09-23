@@ -93,7 +93,7 @@ You will return a JSON object with the following fields, in this order:
 
 - "intentAnalysis": A 10-30 word summary of the user's likely intent, given the user prompt and the page information.
 - "itemDescription": A 2-5 word description of the items the user is trying to scrape. Try to infer the general item based on the intent.
-- "detailFields": An array defining the fields the user is looking for related to the item.
+- "detailFields": An array defining the field(s) the user is looking for, based on "intentAnalysis" and the prompt. IF THERE IS A PROMPT GIVEN, base this off the prompt.
 - "dataAvailability": For each item in "detailFields", say whether it is likely present on the current page ("currentPage"), or a page LINKED from the current page ("linkedPage")
 - "scrapeTypeGuess": Either "singlePage" or "multiPage". Respond with "singlePage" if the current page has all the items, and all the DETAILS the user wants to scrape. Respond with "multiPage" if these items are LINKED from the current page, and the LINKED pages are needed to get ALL the details the user is looking for. This is your first guess, which you will have a chance to revise.
 - "scrapeTypeReason": Explain in 5-15 words why you made your guess in "scrapeTypeGuess".

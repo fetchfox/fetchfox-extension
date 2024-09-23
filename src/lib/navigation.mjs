@@ -33,8 +33,6 @@ const getPageDataIteration = async (url, options) => {
   const { active, onCreate, sleepTime } = options || {};
   const tabWithUrl = await getTabWithUrl(url);
 
-  console.log('lll tabWithUrl?', tabWithUrl);
-
   if (tabWithUrl) {
     return getTabData(tabWithUrl.id, { shouldClose: false, sleepTime });
   }
@@ -313,8 +311,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       const getHtml = (node) => {
         let clone = node.cloneNode(true);
 
-        const removeTags = ['style', 'path'];
-
+        const removeTags = ['style', 'path', 'svg'];
         // Remove LinkedIn junk
         // TODO: more resilient solution
         if (url.indexOf('https://www.linkedin.com') != -1) {
@@ -325,6 +322,22 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
           clone
             .querySelectorAll(tagName)
             .forEach(el => el.remove());
+        }
+
+        const removeIfLargeAttributes = [
+          ['img', 'src', 1000],
+          ['*', 'class', 100],
+        ];
+        for (const [tagName, attr, cutoff] of removeIfLargeAttributes) {
+          clone
+            .querySelectorAll(tagName)
+            .forEach(el => {
+              const val = (el.getAttribute(attr) || '')
+              if (val.length > cutoff) {
+                console.log('remove!!', tagName, attr, cutoff, val.length);
+                el.setAttribute(attr, '');
+              }
+            });
         }
 
         // Remove hidden elements, LinkedIn puts in a bunch of these

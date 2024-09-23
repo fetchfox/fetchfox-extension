@@ -74,13 +74,24 @@ const runJob = async (job, tabId) => {
   let gatherShare = 0.25;
   let scrapeUrls = []
   if (job.urls.action == 'manual') {
-    console.log('HANDLE MANUAL URLS STEP', job);
-
     gatherShare = 0;
-
     targets = splitUrls(job.urls.manualUrls)
       .map(url => ({ url, text: '(manual)' }));
     await setJobResults(job.id, { targets })
+
+  } else if (job.urls.action == 'current') {
+    const active = await getActiveTab();
+    let url;
+    if (active) {
+      url = active.url;
+      // Save it for next time, in case Chrome can't find it
+      setJobField(job.id, 'urls', Object.assign({}, job.urls, { currentUrl: url }));
+    } else if (job.urls.currentUrl) {
+      url = job.urls.currentUrl;
+    }
+    gatherShare = 0;
+    targets = [{ url, text: '(current)' }];
+    await setJobResults(job.id, { targets });
 
   } else {
     gatherShare = 0.25;
@@ -206,6 +217,11 @@ const checkLoading = async (text, html) => {
   // return { status: 'ok', answer: { status: 'done' } };
 
   const job = await getActiveJob();
+  if (!job) {
+    // Hack...
+    return { status: 'ok', answer: { status: 'done' } };
+  }
+
   const answer = await exec(
     'checkLoading',
     {
