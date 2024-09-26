@@ -61,7 +61,7 @@ import {
   useActiveJob,
 } from '../../state/jobs';
 import { useAutoSleepTime } from '../../state/util';
-import { useOpenAiKey, useUsage } from '../../state/openai';
+import { useOpenAiKey, useUsage, useQuota } from '../../state/openai';
 import { Loading } from '../common/Loading';
 import { Checkbox } from '../common/Checkbox';
 import { Pills } from '../common/Pills';
@@ -110,7 +110,7 @@ const stepHeaderStyle = {
 
 const smallButtonStyle = {
   fontSize: 12,
-}
+};
 
 const maybeOpenPanel = async (job) => {
   if (!(job.scrape?.concurrency < 0)) return;
@@ -244,7 +244,7 @@ const StatusBar = ({ onRun }) => {
         <div>
           {percent && (Math.round(100*percent) + '%')}
           {percent && !!completion?.done && !!completion?.total &&
-            <span> ({completion.done}/{completion.total})</span>
+            <span> ({`${completion.done}/${completion.total}`})</span>
            }
         </div>
         <div>
@@ -285,6 +285,7 @@ const StatusBar = ({ onRun }) => {
 }
 
 const UrlsStep = ({ job, isPopup }) => {
+
   const [action, setAction] = useState(null);
   const [url, setUrl] = useState(null);
   const [list, setList] = useState([]);
@@ -976,8 +977,7 @@ const Results = ({
       </table>
     </div>
   );
-};
-
+}
 
 const Welcome = ({ isPopup, onStart, onSkip }) => {
   const [prompt, setPrompt] = useState('');
@@ -1187,7 +1187,6 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
 
   return (
     <div style={{ ...mainStyle, paddingBottom: 10, paddingTop: 40 }}>
-
       <FoxSays message="Hi! I'm FetchFox" />
 
       <div style={instructionStyle}>Try these examples</div>
@@ -1221,16 +1220,11 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
           Go to Editor &raquo;
         </span>
       </div>
-
     </div>
-  )
+  );
 }
 
-const Inner = ({
-  isPopup,
-  onNewJob,
-  onNewJobFromUrls,
-  onShowSettings }) => {
+const Inner = ({ isPopup, onNewJob, onNewJobFromUrls, onShowSettings }) => {
 
   // const [showSettings, setShowSettings] = useState();
   const { key: openAiKey, plan: openAiPlan, loading: loadingOpenAiKey } = useOpenAiKey('loading');
@@ -1363,6 +1357,17 @@ const Inner = ({
   );
 }
 
+const QuotaError = () => {
+  const quota = useQuota();
+
+  return (
+    <div style={{ color: 'white' }}>
+      quota error?
+      <pre>{JSON.stringify(quota, null, 2)}</pre>
+    </div>
+  );
+}
+
 export const Scrape = ({ isPopup }) => {
   const {
     key: openAiKey,
@@ -1371,6 +1376,7 @@ export const Scrape = ({ isPopup }) => {
   } = useOpenAiKey('loading');
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState();
+  const quota = useQuota();
 
   const activeJob = useActiveJob();
 
@@ -1443,6 +1449,7 @@ export const Scrape = ({ isPopup }) => {
   }
 
   let body;
+
   if (loading || loadingOpenAiKey) {
     body = (
       <div style={{ padding: 50, textAlign: 'center', color: 'white' }}>
@@ -1451,11 +1458,10 @@ export const Scrape = ({ isPopup }) => {
         <p>loadingOpenAiKey? {''+loadingOpenAiKey}</p>
       </div>
     );
-  } else if (step == 'settings') {
+  } else if (!quota.ok || step == 'settings') {
     body = (
       <div style={mainStyle}>
-        <OpenAiKeyEntry onDone={() => { setStep('welcome') }}
-        />
+        <OpenAiKeyEntry onDone={() => { setStep('welcome') }} />
       </div>
     );
   } else if (step == 'welcome') {

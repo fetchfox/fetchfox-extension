@@ -2,24 +2,20 @@ import React, { Component } from 'react';
 import { useGlobalError } from '../../state/errors';
 import { clearGlobalError } from '../../lib/errors.mjs';
 import { bgColor, errorColor } from  '../../lib/constants.mjs';
+import { useQuota } from '../../state/openai';
 import {
   IoMdCloseCircle,
 } from 'react-icons/io';
+import {
+  RiErrorWarningFill,
+} from 'react-icons/ri';
 
 export const GlobalError = () => {
   const globalError = useGlobalError();
 
-  if (!globalError) return null;
-
-  return (
-    <div
-      style={{ position: 'fixed',
-               zIndex: 2,
-               bottom: 0,
-               left: 0,
-               width: '100%',
-             }}
-      >
+  let errorNode;
+  if (globalError) {
+    errorNode = (
       <div
         className="error-message"
         style={{ display: 'flex',
@@ -42,8 +38,18 @@ export const GlobalError = () => {
             onClick={() => clearGlobalError()} />
         </div>
       </div>
-      <div>
-      </div>
+    );
+  }
+  return (
+    <div
+      style={{ position: 'fixed',
+               zIndex: 2,
+               bottom: 0,
+               left: 0,
+               width: '100%',
+             }}
+      >
+      {errorNode}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useOpenAiKey, useOpenAiModels } from '../../state/openai';
+import { useOpenAiKey, useOpenAiModels, useQuota } from '../../state/openai';
 import { setKey } from '../../lib/store.mjs';
 import { Error } from '../common/Error';
 import { FoxSays } from '../fox/FoxSays';
@@ -11,7 +11,45 @@ import {
   FiCircle,
   FiCheckCircle,
 } from 'react-icons/fi';
+import {
+  RiErrorWarningFill,
+} from 'react-icons/ri';
 import { mainColor } from '../../lib/constants.mjs';
+
+const QuotaError = () => {
+  const quota = useQuota();
+
+  if (quota.ok) return null;
+
+  return (
+    <div style={{ color: 'white' }}>
+      <div
+        style={{ display: 'flex',
+                 alignItems: 'flex-start',
+                 justifyContent: 'space-between',
+                 flexDirection: 'column',
+                 padding: 10,
+                 fontSize: 14,
+                 lineHeight: '18px',
+                 borderRadius: 8,
+                 background: '#fff9db',
+                 border: '1px solid #ffe066',
+                 color: '#8b6508',
+                 zIndex: 50,
+               }}
+        >
+        <b style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 18 }}><div style={{ display: 'flex', alignItems: 'center'}}><RiErrorWarningFill size={24} /></div><div>You are out of OpenAI credits</div></b>
+        <p>
+          You won't be able to use FetchFox until you add more credits. You can do so by visiting OpenAI's billing dashboard:
+        </p>
+        <div style={{ margin: 10, textAlign: 'center' }}>
+          <a href="https://platform.openai.com/settings/organization/billing/overview" className="clickable" style={{ color: '#8b6508'  }} target="_blank">Visit OpenAI Billing Page</a>
+        </div>
+        <p>Alternatively, you can switch to the FetchFox server below.</p>
+      </div>
+    </div>
+  );
+}
 
 export const OpenAiKeyEntry = ({ onDone, doneText }) => {
   const { key: openAiKey, plan: openAiPlan } = useOpenAiKey();
@@ -21,10 +59,13 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
   const [error, setError] = useState();
   const [success, setSuccess] = useState(false);
   const [disabled, setDisabled] = useState(true);
+  const quota = useQuota();
 
   useEffect(() => {
-    setDisabled(!openAiPlan || (openAiPlan == 'openai' && !openAiKey));
-  }, [openAiKey, openAiPlan]);
+    setDisabled(
+      !quota?.ok ||
+      (!openAiPlan || (openAiPlan == 'openai' && !openAiKey)));
+  }, [openAiKey, openAiPlan, quota?.ok]);
 
   useEffect(() => {
     setApiKey(openAiKey);
@@ -110,6 +151,8 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
   return (
     <div>
       <FoxSays message="How do you want to use FetchFox?" />
+
+      <QuotaError />
 
       <div style={{ ...wrapperStyle,
                     ...(openAiPlan == 'openai' ? wrapperActiveStyle : {})}}>
@@ -201,7 +244,7 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
           </div>
         </div>
 
-        <div style={{ position: 'fixed',
+        {!disabled && <div style={{ position: 'fixed',
                       bottom: 0,
                       left: 0,
                       width: '100vw',
@@ -217,7 +260,7 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
             >
             {doneText || 'Done'}
           </button>
-        </div>
+        </div>}
       </div>
     </div>
   );

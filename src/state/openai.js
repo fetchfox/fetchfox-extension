@@ -2,6 +2,7 @@ import { useMemo, useEffect, useState } from 'react';
 import { getModel, getAvailableModels } from '../lib/ai.mjs';
 import { getKey } from '../lib/store.mjs';
 import { useRoundId } from '../lib/controller.mjs';
+import OpenAI from 'openai';
 
 export const useOpenAiKey = () => {
   const [key, setKey] = useState();
@@ -58,4 +59,44 @@ export const useUsage = () => {
   }, [roundId]);
 
   return usage;
+}
+
+export const useQuota = () => {
+  const [quota, setQuota] = useState({ ok: true });
+  const openai = useOpenAiKey();
+  const models = useOpenAiModels();
+
+  useEffect(() => {    
+    if (!openai?.key) return;
+    if (!models?.model) return;
+
+    if (openai?.plan == 'free') {
+      setQuota({ credits: 1, ok: true });
+      return;
+    }
+
+    const client = new OpenAI({
+      apiKey: openai.key,
+      dangerouslyAllowBrowser: true,
+    });
+
+    // There's no endpoint for quota available, so just run
+    // a test prompt
+    client.chat.completions.create({
+      model: models.model,
+      messages: [{ role: 'user', content: 'test' }],
+    })
+      .then((resp) => {
+        setQuota({ credits: 1, ok: true });
+      })
+      .catch((err) => {
+        if (err.code == 'insufficient_quota') {
+          setQuota({ credits: 0, error: err, ok: false });
+        } else {
+          setQuota({ error: err, ok: false });
+        }
+      });
+  }, [openai?.plan, openai?.key, models?.model]);
+
+  return quota;
 }
