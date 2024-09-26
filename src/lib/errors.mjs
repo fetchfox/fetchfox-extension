@@ -15,10 +15,14 @@ export const getGlobalError = async () => {
 }
 
 export const initSentry = () => {
+  // if (chrome.runtime.getManifest()
+  return;
+
   Sentry.init({
     dsn: sentryDsn,
     beforeSend(event, hint) {
       const err = hint.originalException;
+      console.error(err);
       setGlobalError('We noticed an error: ' + err.message);
       return event;
     }

@@ -2,6 +2,7 @@ import { setStatus, setKey } from './store.mjs';
 import { getRoundId, isActive, addListener, removeListener } from './controller.mjs';
 import { sleep } from './util.mjs';
 import { getTabUrl, closeTabIfExists } from './browser.mjs';
+import { apiHost } from './constants.mjs';
 
 const loadSleepTimes = {};
 
@@ -10,6 +11,25 @@ const maxTabAttempts = 3;
 
 export const getPageData = async (url, options) => {
   console.log('get page data got options (sleep)', options);
+
+  const isPdf = await checkIfPdf(url);
+  if (isPdf) {
+    // TODO: handle large PDFs. Vercel caps body size at 1MB or 4.5MB
+    const pdfResp = await fetch(url);
+    const buf = await pdfResp.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(buf)
+        .reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+    const body = JSON.stringify({ base64 });
+    const resp = await fetch(apiHost + '/api/pdf', { method: 'POST', body });
+    return {
+      url,
+      html: '',
+      text: await resp.text(),
+      links: [],
+    };
+  }
 
   const roundId = await getRoundId();
 
@@ -448,4 +468,18 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
   console.log('inject response gave:', x);
 
   return x;
+}
+
+const checkIfPdf = async (url) => {
+  if (url.indexOf(apiHost) == -1 && url.toLowerCase().endsWith(".pdf")) {
+    return true;
+  }
+
+  const resp = await fetch(url, { method: 'HEAD' });
+  const type = resp.headers.get('Content-Type');
+  if (('' + type).toLowerCase().includes('application/pdf')) {
+    return true;
+  }
+
+  return false;
 }
