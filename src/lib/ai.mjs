@@ -21,7 +21,7 @@ export async function estimateTokens(prompt) {
   return prompt.length / 4;
 }
 
-export async function exec(name, args, cb) {
+export async function exec(name, args, cb, modelOverride) {
   const plan = await getKey('openAiPlan');
   let answer;
 
@@ -55,9 +55,11 @@ export async function exec(name, args, cb) {
     askAI = async (name, args) => {
       const prompt = render(name, args);
       console.log('Sending prompt to openai:', prompt);
+      console.log('modelOverride?', modelOverride);
       const resp = await stream(
         prompt,
-        (text) => cb && cb(parseAnswer(text)));
+        (text) => cb && cb(parseAnswer(text)),
+        modelOverride);
 
       return { answer: resp.result, usage: resp.usage };
     }
@@ -120,7 +122,7 @@ export async function exec(name, args, cb) {
   return parseAnswer(answer);
 }
 
-export async function stream(prompt, cb) {
+export async function stream(prompt, cb, modelOverride) {
   // Check for cached value
   const cachedResult = await readCache(prompt);
   if (cachedResult != undefined) {
@@ -133,7 +135,7 @@ export async function stream(prompt, cb) {
     dangerouslyAllowBrowser: true,
   });
 
-  const model = await getModel();
+  const model = modelOverride ? modelOverride : await getModel();
   console.log('Using model:', model);
 
   const stream = await openai.chat.completions.create({

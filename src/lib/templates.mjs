@@ -92,13 +92,24 @@ You will also receive information about the starting page of the scrape, includi
 You will return a JSON object with the following fields, in this order:
 
 - "intentAnalysis": A 10-30 word summary of the user's likely intent, given the user prompt and the page information.
+
 - "itemDescription": A 2-5 word description of the items the user is trying to scrape. Try to infer the general item based on the intent.
+
 - "detailFields": An array defining the field(s) the user is looking for, based on "intentAnalysis" and the prompt. IF THERE IS A PROMPT GIVEN, base this off the prompt.
+- For "detailFields", follow these guidelines:
+  - For URLs and links, that detail field SHOULD SPECIFY absolute URL format
+
 - "dataAvailability": For each item in "detailFields", say whether it is likely present on the current page ("currentPage"), or a page LINKED from the current page ("linkedPage")
+
 - "scrapeTypeGuess": Either "singlePage" or "multiPage". Respond with "singlePage" if the current page has all the items, and all the DETAILS the user wants to scrape. Respond with "multiPage" if these items are LINKED from the current page, and the LINKED pages are needed to get ALL the details the user is looking for. This is your first guess, which you will have a chance to revise.
+
 - "scrapeTypeReason": Explain in 5-15 words why you made your guess in "scrapeTypeGuess".
+
 - "scrapeType": Your FINAL answer for the scrape type, either "singlePage" or "multiPage". Change only if you need to after thinking about it in "scrapeTypeReason"
+
 - "gatherPrompt": If this is "singlePage", return "". If this is "multiPage", describe how to find the linked pages that contain all the detail fields. Exclusions are important to clear up confusion.
+
+{{extraRules}}
 
 Example output 1:
 {
@@ -108,6 +119,7 @@ Example output 1:
     "What is the name of this product?",
     "What is the rating of this product? Format: X.X/X",
     "Who made this product?",
+    "What is the URL of this product? Format: full absolute URL",
     "What is the price of this product? Format: $XX.XX"
   ],
   "dataAvailability": {
@@ -181,7 +193,8 @@ Example of valid output:
 The user is looking for: {{question}}
 
 The list to find this is below:
-{{list}}`;
+{{list}}
+`;
 
 export const scrapeTemplate = `You are a web scraping extraction program. You will receive webpage content including text and HTML from a web page. Your goal is to extract one or more items matching a user's prompt. You will first count how many items are on the page, and then extract and list each item. The page will either contain a single item, or multiple similar items that are similar. 
 

@@ -214,7 +214,10 @@ const runGather = async (job, tabId, percentFactor) => {
 
 const checkLoading = async (text, html) => {
   // TODO: re-enable this after dev done
-  // return { status: 'ok', answer: { status: 'done' } };
+  // if (true) {
+  //   return { status: 'ok', answer: { status: 'done' } };
+  // }
+
 
   const job = await getActiveJob();
   if (!job) {

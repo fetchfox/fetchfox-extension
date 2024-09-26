@@ -4,14 +4,24 @@ import { setStatus, nextId } from './store.mjs';
 import { genJobTemplate } from './templates.mjs';
 import { sendNextIdMessage } from './job.mjs';
 
+const domainRules = {
+  'www.google.com': [
+    `Determine if the user is interestedin OFFSITE links, eg. search results. If yes, the "itemDescription" and "gatherPrompt" should IGNORE links containing www.google.com in them.`,
+  ]
+};
+
 export const genJob = async (scrapePrompt, url, page) => {
   const count = 5000;
 
   const text = page?.text || '';
   const html = page?.html || '';
 
-  // console.log('page', page);
-  // return;
+  const hostname = (new URL(url)).hostname;
+  console.log('hostname for job:', hostname);
+  let extraRules = domainRules[hostname];
+  if (extraRules) {
+    extraRules = `Follow these IMPORTANT instructions SPECIFIC to ${hostname}:\n${extraRules}`;
+  }
 
   const answer = await exec(
     'genJob2',
@@ -21,6 +31,7 @@ export const genJob = async (scrapePrompt, url, page) => {
       text: text.substr(0, 30000),
       html: html.substr(0, 6000),
       count,
+      extraRules,
     },
     null,
     'gpt-4o');
@@ -55,21 +66,6 @@ export const genJob = async (scrapePrompt, url, page) => {
     job.urls.question = answer.itemDescription + ': ' + answer.gatherPrompt;
     job.scrape.perPage = 'single';
   }
-
-  // const job = {
-  //   id: await sendNextIdMessage(),
-  //   name: (new URL(url)).hostname + ' - ' + (answer?.itemSummary || ''),
-  //   urls: {
-  //     action: 'gather',
-  //     url: url,
-  //     list: [],
-  //     question: (answer?.gatherPrompt || 'Error, try again'),
-  //   },
-  //   scrape: {
-  //     action: 'scrape',
-  //     questions: (answer?.detailFields || ['Error: try again']),
-  //   },
-  // };
 
   return job;
 }

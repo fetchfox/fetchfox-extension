@@ -85,7 +85,7 @@ export const getKey = async (key) => {
 }
 
 export const setKey = async (key, val) => {
-  lockedUpdate(async () => {
+  return lockedUpdate(async () => {
     const changes = {};
     changes[key] = val;
     return changes;

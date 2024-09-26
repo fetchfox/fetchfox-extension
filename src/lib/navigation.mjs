@@ -354,7 +354,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       let text = getText(document.body) || '';
       let html = getHtml(document.body) || '';
 
-      const maxDynamicWaits = 3;
+      const maxDynamicWaits = 1;
       let i;
       for (i = 0; shouldCheckLoad & i < maxDynamicWaits; i++) {
         // Check if its loaded
@@ -395,7 +395,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         if (i + 1 == maxDynamicWaits) {
           chrome.runtime.sendMessage({
             action: 'setStatus',
-            message: 'Give up waiting for dynamic content on ' + url,
+            message: 'Stop waiting for dynamic content on ' + url,
           });
         }
 

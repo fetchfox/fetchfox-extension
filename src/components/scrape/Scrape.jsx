@@ -6,6 +6,7 @@ import {
   IoMdAddCircle,
   IoMdCloseCircle,
   IoMdArrowBack,
+  IoIosArrowDroprightCircle,
 } from 'react-icons/io';
 import { IoPlayCircle, IoCloseCircle } from 'react-icons/io5';
 import {
@@ -818,7 +819,7 @@ const Results = ({
           className="btn btn-gray"
           >
           <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 5}}>
-            New Scrape <TbFileArrowRight size={14} />
+            Scrape These <IoIosArrowDroprightCircle size={14} />
           </div>
         </button>
       </div>
@@ -913,7 +914,7 @@ const Results = ({
                        ...(highlight == header ? highlightStyle : {})
                      }}
               >
-              {answer[header]}
+              {typeof answer[header] == 'string' ? answer[header] : JSON.stringify(answer[header])}
             </td>);
         }
 
@@ -958,7 +959,7 @@ const Results = ({
   } else {
     countsStr = counts.scraped + ' results';
     if (counts.error > 0) {
-      countsStr += ' (' + counts.error + ' error'+ (counts.error == 1 ? '' : 's') + ')';g
+      countsStr += ' (' + counts.error + ' error'+ (counts.error == 1 ? '' : 's') + ')';
     }
   }
 
@@ -1040,8 +1041,9 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
       setPrompt(e.target.value + '\n');
       return;
     }
-
     e.preventDefault();
+
+    if (loading) return;
 
     setLoading(true);
     const page = isActive ? (await getTabData()) : null;
@@ -1133,6 +1135,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
                      borderRadius: 15,
                      display: 'inline-block',
                    }}
+            disabled={loading}
             >
             <div style={{ display: 'flex',
                           justifyContent: 'center',
@@ -1232,7 +1235,6 @@ const Inner = ({
   const job = useActiveJob();
 
   console.log('Active job:', job);
-
   const handleScrape = async (urls) => {
     return runScrape(job, urls);
   }
@@ -1376,9 +1378,11 @@ export const Scrape = ({ isPopup }) => {
 
     if (!openAiPlan || (openAiPlan == 'openai' && !openAiKey)) {
       setStep('settings');
+      setLoading(false);
     } else {
       if (!step) {
         setStep('welcome');
+        setLoading(false);
       }
     }
   }, [openAiKey, openAiPlan, loadingOpenAiKey]);
@@ -1386,6 +1390,8 @@ export const Scrape = ({ isPopup }) => {
   useEffect(() => {
 
     if (!activeJob) return;
+    // if (step != 'welcome') return;
+    // if (!loading) return;
 
     getActiveTab()
       .then((tab) => {
@@ -1397,7 +1403,6 @@ export const Scrape = ({ isPopup }) => {
           // New domain, assume new job
           setLoading(false);
           setStep('welcome');
-          return;
         } else {
           // Pick up where we left off
           getKey('scrapeStep').then((s) => {
@@ -1413,16 +1418,16 @@ export const Scrape = ({ isPopup }) => {
     if (!activeJob) {
       handleStart(await genBlankJob());
     } else {
+      await setKey('scrapeStep', 'inner');
       setStep('inner');
-      setKey('scrapeStep', 'inner');
     }
   }
 
   const handleStart = async (job) => {
     await saveJob(job);
     await setActiveJob(job.id);
+    await setKey('scrapeStep', 'inner');
     setStep('inner');
-    setKey('scrapeStep', 'inner');
   };
 
   const handleNew = async () => {
@@ -1438,8 +1443,10 @@ export const Scrape = ({ isPopup }) => {
   let body;
   if (loading || loadingOpenAiKey) {
     body = (
-      <div style={{ padding: 50, textAlign: 'center' }}>
+      <div style={{ padding: 50, textAlign: 'center', color: 'white' }}>
         <Loading size={50} />
+        <p>loading? {''+loading}</p>
+        <p>loadingOpenAiKey? {''+loadingOpenAiKey}</p>
       </div>
     );
   } else if (step == 'settings') {
