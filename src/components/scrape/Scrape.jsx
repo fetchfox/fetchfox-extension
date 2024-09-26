@@ -137,9 +137,14 @@ const StatusBar = ({ onRun }) => {
   const [tpm, setTpm] = useState();
   const [inFlight, setInFlight] = useState(0);
   const [loading, setLoading] = useState();
+  const [busy, setBusy] = useState();
   const [statusHeight, setStatusHeight] = useState(0);
   const roundId = useRoundId(0);
   const usage = useUsage();
+
+  useEffect(() => {
+    setBusy(loading || inFlight != 0);
+  }, [loading, inFlight]);
 
   console.log('Status bar usage:', usage);
 
@@ -184,9 +189,6 @@ const StatusBar = ({ onRun }) => {
       </button>
     </div>
   );
-
-  const busy = loading || inFlight != 0;
-  // const busy = true;
 
   const calcWidth = 'calc(100% - ' + (2 * size + 16) + 'px)';
 
