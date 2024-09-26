@@ -242,6 +242,12 @@ export const getAvailableModels = async () => {
     'https://api.openai.com/v1/models',
     { headers: {Authorization: 'Bearer ' + apiKey }});
   const data = await resp.json();
+
+  if (!data || !data.data) {
+    setGlobalError(`We couldn't find any available models. Double check your API key`);
+    return [];
+  }
+
   const models = data.data.map(m => m.id)
         .sort((a, b) => {
           if (a == recommendModel) return -1;
