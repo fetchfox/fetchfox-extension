@@ -3,6 +3,7 @@ import { sleep } from './util.mjs';
 import { setStatus, nextId } from './store.mjs';
 import { genJobTemplate } from './templates.mjs';
 import { sendNextIdMessage } from './job.mjs';
+import { getAvailableModels } from './ai.mjs';
 
 const domainRules = {
   'www.google.com': [
@@ -23,6 +24,11 @@ export const genJob = async (scrapePrompt, url, page) => {
     extraRules = `Follow these IMPORTANT instructions SPECIFIC to ${hostname}:\n${extraRules}`;
   }
 
+  const available = await getAvailableModels();
+  console.log('available models for gen job:', available);
+  const modelOverride = available.includes('gpt-4o') ? 'gpt-4o' : null;
+  console.log('using modelOverride for gen job:', modelOverride);
+
   const answer = await exec(
     'genJob2',
     {
@@ -34,7 +40,7 @@ export const genJob = async (scrapePrompt, url, page) => {
       extraRules,
     },
     null,
-    'gpt-4o');
+    modelOverride);
 
   console.log('GEN JOB 2 GAVE', await answer);
 
