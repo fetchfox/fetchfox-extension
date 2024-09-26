@@ -1057,7 +1057,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
       console.log('genjob gave:', job);
       return onStart(job);
     } catch (e) {
-      setGlobalError('Erorr generating job, try again: ' + e);
+      setGlobalError('Error generating job, try again: ' + e);
       setLoading(false);
       throw e;
     }

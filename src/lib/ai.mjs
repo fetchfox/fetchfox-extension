@@ -80,11 +80,17 @@ export async function exec(name, args, cb, modelOverride) {
     try {
       resp = await askAI(name, args);
       console.log('AI resp:', resp);
+
     } catch(e) {
       console.error('AI error:', e);
       console.log('AI error retries left:', retries);
 
-      if (e.code == 'rate_limit_exceeded' && retries > 0) {
+      if (e.code == 'insufficient_quota') {
+        setGlobalError(
+          'You have no OpenAI quota. Add credits, or switch to the FetchFox backend.');
+        return;
+
+      } else if (e.code == 'rate_limit_exceeded' && retries > 0) {
         observedRateLimit *= 0.9;
         console.log('Query rate limit hit, set new observedRateLimit:', observedRateLimit);
         hitRateLimit = true;
@@ -92,7 +98,6 @@ export async function exec(name, args, cb, modelOverride) {
       } else if (e.code == 'rate_limit_exceeded' && plan == 'free' && retries <= 0) {
 
         console.error('Too many errors, giving up on AI query');
-
         setGlobalError(
           'High load! ' +
           'Please try again later, or enter your OpenAI API key in settings.');
