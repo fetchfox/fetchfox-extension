@@ -73,6 +73,7 @@ import { Pagination } from '../pagination/Pagination';
 import { PerPage } from '../perpage/PerPage';
 import { Share } from '../share/Share';
 import { FoxSays } from '../fox/FoxSays';
+import { Results } from './Results';
 import fox from '../../assets/img/fox-transparent.png';
 import './Scrape.css';
 
@@ -805,208 +806,6 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
   );
 }
 
-const Results = ({
-  job,
-  targets,
-  onScrape,
-  onRemove,
-  onNewJobFromUrls }) =>
-{
-
-  const [highlight, setHighlight] = useState();
-
-  const headers = (job?.results?.answerHeaders || []);
-  const types = (job?.results?.types || {});
-
-  const urlStyle = {
-    width: 200,
-    minWidth: 200,
-    maxWidth: 200,
-    overflowWrap: 'break-word',
-    wordBreak: 'break-all',
-  };
-
-  const answerStyle = {
-    minWidth: 120,
-    maxWidth: 400,
-    overflowWrap: 'break-word',
-  };
-
-  const highlightStyle = {
-    backgroundColor: '#fff1',
-  };
-
-  const handleNewScrape = (header) => {
-    if (!confirm('Start a new scrape using column "' + header + '"?')) return;
-    onNewJobFromUrls(getJobColumn(job, header));
-  }
-
-  const newScrapeNode = (header) => {
-    return (
-      <div style={{ whiteSpace: 'nowrap', margin: '4px 0' }}>
-        <button
-          onMouseEnter={() => setHighlight(header)}
-          onMouseLeave={() => setHighlight(null)}
-          onClick={() => handleNewScrape(header)}
-          className="btn btn-gray"
-          >
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 5}}>
-            Scrape These <IoIosArrowDroprightCircle size={14} />
-          </div>
-        </button>
-      </div>
-    )
-  }
-
-  let i = 0;
-  let headerNodes = [];
-  headerNodes.push(<th key="action"></th>);
-  headerNodes.push(<th key="status" style={{ maxWidth: 80 }}>status</th>);
-  headerNodes.push(<th key="url" style={urlStyle}>URL</th>);
-  headerNodes.push(<th key="text" style={{ width: 100 }}>Link Text</th>);
-
-  headerNodes = headerNodes.concat(
-    headers.map(header => (
-      <th key={header} style={answerStyle}>
-        {header}
-        {types[header] == 'url' && newScrapeNode(header)}
-      </th>)
-    ));
-
-  const numResults = targets ? targets.length : 0;
-
-  const shortUrl = (url) => {
-    if (url.length < 100) return url;
-    return url.substr(0, 90) + '...';
-  }
-
-  let rows;
-  if (numResults == 0) {
-    rows = (
-      <tr>
-      </tr>
-    );
-  } else {
-    rows = [];
-
-    for (let tIndex = 0; tIndex < targets.length; tIndex++) {
-      const target = targets[tIndex];
-
-      // The first row
-      const num = (target.answer || []).length;
-      const rowSpan = num || 1
-      let cells = [];
-      cells.push(
-        <td key="action" style={{ width: 1 }} rowSpan={rowSpan}>
-          <div style={{ display: 'flex' }}>
-            <IoPlayCircle style={{ color: '#ddd', cursor: 'pointer' }} onClick={() => onScrape([target.url])} size={18} />
-            {' '}
-            <IoMdCloseCircle style={{ color: '#ddd', cursor: 'pointer' }} onClick={() => onRemove([target.url])} size={18} />
-          </div>
-        </td>);
-      cells.push(
-        <td
-          key="status"
-          rowSpan={rowSpan}
-          style={{ whiteSpace: 'nowrap',
-                   textAlign: 'center',
-                 }}>
-          <div style={{ width: 80, textAlign: 'center' }}>
-            {target.loading && <Loading width={14} />}
-            {!target.loading && target.status}
-            {num && num > 1 ? (' (' + num + ')') : ''}
-          </div>
-        </td>
-      );
-
-      // One row per answer
-      let count = 0;
-      for (const answer of (target.answer || [{}])) {
-        cells.push(
-          <td
-            key="url"
-            style={{ ...answerStyle,
-                     ...(highlight == 'URL' ? highlightStyle : {})
-                   }}
-            >
-            {shortUrl(target.url)}
-          </td>);
-
-        cells.push(
-          <td key="linktext" style={{ width: 180, overflow: 'hidden' }}>
-            {target.text}
-          </td>);
-
-        for (const header of headers) {
-          cells.push(
-            <td
-              key={header}
-              style={{ ...answerStyle,
-                       ...(highlight == header ? highlightStyle : {})
-                     }}
-              >
-              {typeof answer[header] == 'string' ? answer[header] : JSON.stringify(answer[header])}
-            </td>);
-        }
-
-        rows.push(
-          <tr key={i++} style={{ verticalAlign: 'top' }}>
-            {cells}
-          </tr>);
-
-        cells = [];
-      }
-    }
-  }
-
-  const counts = {
-    total: 0,
-    scraped: 0,
-    error: 0,
-  }
-
-  for (const target of (targets || [])) {
-
-    console.log('count', target, counts);
-
-    counts.total++;
-    for (const a of (target.answer || [])) {
-      counts.scraped++;
-    }
-    if (target.status == 'error') {
-      counts.error++;
-    }
-  }
-
-  let countsStr = '';
-
-  if (job.scrape?.scrapeType == 'multiPage') {
-    countsStr += counts.total + ' ' + (counts.total == 1 ? 'result' : 'results');
-    countsStr += ' (' + counts.scraped + ' scraped';
-    if (counts.error > 0) {
-      countsStr += ', ' + counts.error + ' error'+ (counts.error == 1 ? '' : 's');
-    }
-    countsStr += ')';
-  } else {
-    countsStr = counts.scraped + ' results';
-    if (counts.error > 0) {
-      countsStr += ' (' + counts.error + ' error'+ (counts.error == 1 ? '' : 's') + ')';
-    }
-  }
-
-  return (
-    <div style={{ overflowX: 'scroll', margin: '10px 0' }}>
-
-      <div style={{ margin: '5px 0' }}>{countsStr}</div>
-
-      <table style={{ width: '100%' }}>
-        <thead><tr>{headerNodes}</tr></thead>
-        <tbody>{rows}</tbody>
-      </table>
-    </div>
-  );
-}
-
 const Welcome = ({ isPopup, onStart, onSkip }) => {
   const [prompt, setPrompt] = useState('');
   const [url, setUrl] = useState('');
@@ -1014,8 +813,8 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
   const jobs = useJobs();
 
   useEffect(() => {
-    getActiveTab()
-      .then(tab => setUrl(tab.url));
+    getActiveTab().then(tab => setUrl(tab.url));
+    getKey('masterPrompt').then(val => setPrompt(val || ''));
   }, []);
 
   const examples = [
@@ -1058,11 +857,17 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
     marginTop: jobs.length == 0 ? 40 : 20,
   };
 
+  const timeoutRef = useRef(null);
   const handleKeyDown = (e) => {
     if (e.key == 'Enter' && !e.shiftKey) {
       handleSubmit(e, prompt, url, true);
+      setKey('masterPrompt', '');
     } else {
       setPrompt(e.target.value);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(
+        () => setKey('masterPrompt', e.target.value),
+        100);
     }
   }
 
@@ -1435,23 +1240,26 @@ export const Scrape = ({ isPopup }) => {
     console.log('activeJob changed, check if we need to change the step', step);
 
     getActiveTab()
-      .then((tab) => {
+      .then(async (tab) => {
         const jobUrl = getJobUrl(activeJob) || '';
         const tabUrl = tab ? tab.url : '';
         const tabHostname = tabUrl ? (new URL(tabUrl)).hostname : '';
 
-        if (jobUrl && jobUrl.indexOf(tabHostname) == -1) {
+        const inFlight = await getKey('inFlight');
+        if (inFlight > 0) {
+          // Job is running, go to inner page
+          setStep('inner');
+          setLoading(false);
+        } else if (jobUrl && jobUrl.indexOf(tabHostname) == -1) {
           // New domain, assume new job
           console.log('new domain, so change the step');
-          setLoading(false);
           setStep('welcome');
+          setLoading(false);
         } else {
           // Pick up where we left off
           console.log('not changing step');
-          getKey('scrapeStep').then((s) => {
-            setLoading(false);
-            setStep(s);
-          });
+          setStep(await getKey('scrapeStep'));
+          setLoading(false);
         }
       });
 

@@ -302,6 +302,13 @@ export const setJobResults = async (jobId, { targets, answers }, clearMissing) =
         }
 
         job.results.answerHeaders = Object.keys(counts);
+        const questions = job.scrape.questions || []
+        job.results.answerHeaders.sort((a, b) => {
+          const [ai, bi] = [questions.findIndex(x => x == a), questions.findIndex(x => x == b)];
+          if (ai == -1) ai = 999;
+          if (bi == -1) bi = 999;
+          return ai - bi;
+        });
 
         const types = {};
         for (const h of job.results.answerHeaders) {
