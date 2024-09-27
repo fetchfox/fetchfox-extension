@@ -391,6 +391,7 @@ const UrlsStep = ({ job, isPopup }) => {
     updateAction(job.urls?.action);
     updateUrl(job.urls?.url);
     updateManualUrls(job.urls?.manualUrls);
+    updatePagination(job.urls?.pagination);
     updateList(job.urls?.list);
     updateQuestion(job.urls?.question);
     updateShouldClear(!!(job.urls?.shouldClear));
@@ -531,10 +532,15 @@ const UrlsStep = ({ job, isPopup }) => {
           {currentUrl}
         </div>
       </div>
+
       <Pagination
         url={currentUrl}
         onChange={updatePagination}
+        follow={job.urls?.pagination?.follow || false}
+        count={job.urls?.pagination?.count || 0}
       />
+
+      {/*<pre>{JSON.stringify(job.urls?.pagination, null, 2)}</pre>*/}
 
       {questionNode}
     </div>
@@ -845,13 +851,8 @@ const Results = ({
   let headerNodes = [];
   headerNodes.push(<th key="action"></th>);
   headerNodes.push(<th key="status" style={{ maxWidth: 80 }}>status</th>);
-  headerNodes.push(
-    <th key="url" style={urlStyle}>
-      URL
-      {/*targets && targets.length > 0 && newScrapeNode('URL')*/}
-    </th>);
-
-  headerNodes.push(<th key="text">Link Text</th>);
+  headerNodes.push(<th key="url" style={urlStyle}>URL</th>);
+  headerNodes.push(<th key="text" style={{ width: 100 }}>Link Text</th>);
 
   headerNodes = headerNodes.concat(
     headers.map(header => (

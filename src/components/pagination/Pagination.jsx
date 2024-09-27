@@ -5,19 +5,11 @@ import { usePagination } from '../../state/gather';
 import { useActiveJob } from '../../state/jobs';
 import { useActivePage } from '../../state/navigation';
 
-export const Pagination = ({ onChange }) => {
+export const Pagination = ({ onChange, follow, count }) => {
   const activePage = useActivePage();
   const pagination = usePagination(activePage);
-  const [follow, setFollow] = useState();
-  const [count, setCount] = useState();
 
   const update = (f, c) => {
-    setFollow(f);
-    if (f && !count) {
-      c = pagination.links.pages[0].pageNumber;
-    }
-    setCount(c);
-
     const pages = pagination.links?.pages.filter(x => f && x.pageNumber <= c);
     onChange({
       count: c,
@@ -63,7 +55,7 @@ export const Pagination = ({ onChange }) => {
       );
 
       const optionNodes = pagination.links.pages.map(link => (
-        <option value={link.pageNumber}>up to page {link.pageNumber} ({link.url})</option>
+        <option key={link.pageNumber} value={link.pageNumber}>up to page {link.pageNumber} ({link.url})</option>
       ));
 
       paginationOptions = (
@@ -87,11 +79,6 @@ export const Pagination = ({ onChange }) => {
         {paginationInfo}
         {follow && paginationOptions}
       </div>
-
-      {/*
-      <pre>{JSON.stringify(pagination, null, 2)}</pre>
-      <pre>{JSON.stringify(activePage, null, 2)}</pre>
-      */}
     </div>
   );
 }

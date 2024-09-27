@@ -72,7 +72,7 @@ const runJob = async (job, tabId) => {
 
   let targets;
   let gatherShare = 0.25;
-  let scrapeUrls = []
+
   if (job.urls.action == 'manual') {
     gatherShare = 0;
     targets = splitUrls(job.urls.manualUrls)
@@ -91,11 +91,34 @@ const runJob = async (job, tabId) => {
     }
     gatherShare = 0;
 
-    targets = [{ url, text: '(current)' }];
     if (job.urls.pagination?.follow) {
+      // Merge with existing pagination results, if any
+      targets = [];
+      const existing = job.results?.targets || [];
       for (const link of job.urls.pagination.links) {
-        targets.push({ url: link.url, text: `(page ${link.pageNumber})` });
+        console.log('look at pagination link', link);
+
+        const text = link.pageNumber == 0 ? '(current)' : `(page ${link.pageNumber})`;
+
+        const e = existing
+          .filter(t => t.url == link.url)
+          .filter(t => t.text == text)
+          .filter(t => t.status == 'scraped');
+
+        console.log('pagination filtered and got e', e);
+
+        if (e.length > 0) {
+          // Skip it, its already scraped
+
+          // targets.push(e[0]);
+        } else {
+          targets.push({ url: link.url, text });
+        }
       }
+
+      console.log('pagination gave targets:', targets);
+    } else {
+      targets = [{ url, text: '(current)' }];
     }
 
     await setJobResults(job.id, { targets });
@@ -106,10 +129,9 @@ const runJob = async (job, tabId) => {
     targets = targets.concat(job.results?.targets || []);
   }
 
-  // const links = 
   if (!await isActive(roundId)) return;
-  // console.log('got links:', links);
 
+  console.log('Call runScrape');
   await runScrape(
     job,
     targets.map(t => t.url),

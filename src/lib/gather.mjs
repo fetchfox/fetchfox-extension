@@ -107,6 +107,8 @@ export const findPagination = async (page) => {
     if (answer.nextLink) {
       next.push(expander(page, { id: answer.nextLink }));
     }
+
+    if (pages.length >= 10) break;
   }
 
   if (pages.length > 0) {
@@ -122,6 +124,7 @@ export const findPagination = async (page) => {
       pages.push(expanded);
     }
     pages.sort((a, b) => (parseInt(a.pageNumber) || 99) - (parseInt(b.pageNumber) || 99));
+    pages.unshift({ url: page.url, pageNumber: 0 });
   }
 
   // Disabled, since we are not using the "Next" field right now

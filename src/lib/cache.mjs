@@ -12,8 +12,10 @@ export const cacheKey = (part, keys) => {
 
 export const readCache = async (part, keys) => {
   const key = cacheKey(part, keys,);
+  console.log('check cache for:', key);
   const cache = (await getKey('cache')) || {};
   const data = cache[key];
+  console.log('cache found:', key, '->', data);
   if (!data) return;
   if (Date.now() > data.expiresAt || data.val == undefined) {
     cache.del(key);
