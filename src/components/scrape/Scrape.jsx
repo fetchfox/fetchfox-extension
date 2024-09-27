@@ -148,6 +148,8 @@ const StatusBar = ({ onRun }) => {
   const roundId = useRoundId(0);
   const usage = useUsage();
 
+  console.log('sb icon?', chrome.action);
+
   useEffect(() => {
     setBusy(loading || inFlight != 0);
   }, [loading, inFlight]);
@@ -873,6 +875,11 @@ const Results = ({
 
   const numResults = targets ? targets.length : 0;
 
+  const shortUrl = (url) => {
+    if (url.length < 100) return url;
+    return url.substr(0, 90) + '...';
+  }
+
   let rows;
   if (numResults == 0) {
     rows = (
@@ -880,7 +887,6 @@ const Results = ({
       </tr>
     );
   } else {
-
     rows = [];
 
     for (let tIndex = 0; tIndex < targets.length; tIndex++) {
@@ -923,7 +929,7 @@ const Results = ({
                      ...(highlight == 'URL' ? highlightStyle : {})
                    }}
             >
-            {target.url}
+            {shortUrl(target.url)}
           </td>);
 
         cells.push(

@@ -4,6 +4,7 @@ import { createClient } from 'openai-tokens';
 import OpenAI from 'openai';
 import { apiHost } from './constants.mjs';
 import { setKey, getKey, setStatus } from './store.mjs';
+import { getCache, setCache } from './cache.mjs';
 import { getRoundId } from './controller.mjs';
 import { setGlobalError } from './errors.mjs';
 import { getTemplate } from './templates.mjs';
@@ -21,9 +22,14 @@ export async function estimateTokens(prompt) {
 }
 
 export async function exec(name, args, cb, modelOverride) {
+  const model = modelOverride ? modelOverride : await getModel();
   const plan = await getKey('openAiPlan');
-  let answer;
 
+  const keys = [model, plan, name, args];
+  const cached = await getCache('ai', keys);
+  if (cached) return cached;
+
+  let answer;
   let askAI;
 
   if (plan == 'free') {
@@ -58,7 +64,7 @@ export async function exec(name, args, cb, modelOverride) {
       const resp = await stream(
         prompt,
         (text) => cb && cb(parseAnswer(text)),
-        modelOverride);
+        model);
 
       return { answer: resp.result, usage: resp.usage };
     }
@@ -123,16 +129,17 @@ export async function exec(name, args, cb, modelOverride) {
     }
   }
 
-  return parseAnswer(answer);
+  const out = parseAnswer(answer);
+  setCache('ai', keys, out);
+  return out;
 }
 
-export async function stream(prompt, cb, modelOverride) {
+export async function stream(prompt, cb, model) {
   const openai = new OpenAI({
     apiKey: await getKey('openAiKey'),
     dangerouslyAllowBrowser: true,
   });
 
-  const model = modelOverride ? modelOverride : await getModel();
   console.log('Using model:', model);
 
   const stream = await openai.chat.completions.create({
@@ -158,8 +165,10 @@ export async function stream(prompt, cb, modelOverride) {
 
   console.log('AI gave result:', result);
   console.log('AI gave stream:', stream)
+  console.log('clip final result', result, usage);
 
-  return { result, usage };
+  const out = { result, usage };
+  return out;
 }
 
 const checkRateLimit = async (prompt, plan) => {

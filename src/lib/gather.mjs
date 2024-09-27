@@ -7,7 +7,7 @@ import {
   removeListener,
 } from './controller.mjs';
 import { getActiveJob, setJobResults, setStatus } from './store.mjs';
-import { readCache, setCache } from './cache.mjs';
+import { getCache, setCache } from './cache.mjs';
 import { gatherTemplate } from './templates.mjs';
 
 
@@ -70,7 +70,7 @@ const expander = (page, item) => {
 export const findPagination = async (page) => {
   const roundId = await getRoundId();
 
-  const cached = await readCache('pagination', [page.url]);
+  const cached = await getCache('pagination', [page.url]);
   if (cached) {
     console.log('pagination found cached', cached);
     return cached;

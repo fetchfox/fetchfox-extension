@@ -23,6 +23,8 @@ import { getRoundId, isActive, runStopListeners, advanceRound } from '../../lib/
 import { nameTemplate } from '../../lib/templates.mjs';
 import { sendReport } from '../../lib/report.mjs';
 
+import spinnerOrange from '../../assets/img/spinner-orange.svg';
+
 import { initSentry } from '../../lib/errors.mjs';
 initSentry();
 

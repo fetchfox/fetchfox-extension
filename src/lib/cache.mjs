@@ -6,27 +6,31 @@ const getTtl = (part) => {
 }
 
 export const cacheKey = (part, keys) => {
-  const keyStr = keys.join('-');
-  return `${part}-${keyStr.substr(0, 40)}-${sha256(part + keyStr).substr(0, 40)}`;
+  const keyStr = JSON.stringify(keys);
+  return `${part}-${keyStr.replace(/^[A-Za-z0-9]+/g, '-').substr(0, 40)}-${sha256(part + keyStr).substr(0, 40)}`;
 }
 
-export const readCache = async (part, keys) => {
+export const getCache = async (part, keys) => {
   const key = cacheKey(part, keys,);
-  console.log('check cache for:', key);
   const cache = (await getKey('cache')) || {};
   const data = cache[key];
-  console.log('cache found:', key, '->', data);
   if (!data) return;
   if (Date.now() > data.expiresAt || data.val == undefined) {
     cache.del(key);
     setKey('cache', cache);
     return;
   }
+
+  console.log('cache hit', key, data);
+
   return data.val;
 }
 
 export const setCache = async (part, keys, val) => {
   const key = cacheKey(part, keys,);
+
+  console.log('set cache', part, keys, key, val);
+
   const ttl = getTtl(part)
   const cache = (await getKey('cache')) || {};
   cache[key] = { val, expiresAt: Date.now() + ttl * 1000};
