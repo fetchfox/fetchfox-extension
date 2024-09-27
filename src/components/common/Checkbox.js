@@ -7,8 +7,8 @@ import {
 import { mainColor } from  '../../lib/constants.mjs';
 
 
-export const Checkbox = ({ checked, disabled, onClick, children }) => {
-  const size = 18;
+export const Checkbox = ({ size, checked, disabled, onClick, children }) => {
+  size ||= 18;
   return (
     <div
       onClick={onClick}

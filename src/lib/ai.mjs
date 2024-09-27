@@ -4,7 +4,6 @@ import { createClient } from 'openai-tokens';
 import OpenAI from 'openai';
 import { apiHost } from './constants.mjs';
 import { setKey, getKey, setStatus } from './store.mjs';
-import { readCache, writeCache } from './cache.mjs';
 import { getRoundId } from './controller.mjs';
 import { setGlobalError } from './errors.mjs';
 import { getTemplate } from './templates.mjs';
@@ -128,13 +127,6 @@ export async function exec(name, args, cb, modelOverride) {
 }
 
 export async function stream(prompt, cb, modelOverride) {
-  // Check for cached value
-  const cachedResult = await readCache(prompt);
-  if (cachedResult != undefined) {
-    cb && cb({ delta: cachedResult, result: cachedResult });
-    return [cachedResult, true];
-  }
-
   const openai = new OpenAI({
     apiKey: await getKey('openAiKey'),
     dangerouslyAllowBrowser: true,

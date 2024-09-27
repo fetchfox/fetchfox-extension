@@ -90,7 +90,14 @@ const runJob = async (job, tabId) => {
       url = job.urls.currentUrl;
     }
     gatherShare = 0;
+
     targets = [{ url, text: '(current)' }];
+    if (job.urls.pagination?.follow) {
+      for (const link of job.urls.pagination.links) {
+        targets.push({ url: link.url, text: `(page ${link.pageNumber})` });
+      }
+    }
+
     await setJobResults(job.id, { targets });
 
   } else {
@@ -308,7 +315,10 @@ const runScrape = async (job, urls, percentAdd) => {
       result = await scrapePage(
         page,
         job.scrape.questions,
-        job.scrape.perPage || 'single',
+
+        // job.scrape.perPage || 'single',
+        (job.urls.action == 'current' ? 'multiple' : 'single'),
+
         itemDescription,
         extraRules,
         cb);

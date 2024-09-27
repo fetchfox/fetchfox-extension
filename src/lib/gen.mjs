@@ -4,6 +4,7 @@ import { setStatus, nextId } from './store.mjs';
 import { genJobTemplate } from './templates.mjs';
 import { sendNextIdMessage } from './job.mjs';
 import { getAvailableModels } from './ai.mjs';
+import { findPagination } from './gather.mjs';
 
 const domainRules = {
   'www.google.com': [

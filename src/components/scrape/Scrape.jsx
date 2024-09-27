@@ -69,6 +69,7 @@ import { Error } from '../common/Error';
 import { HelpBar } from '../common/HelpBar';
 import { GlobalError } from '../common/GlobalError';
 import { OpenAiKeyEntry } from '../openai/OpenAiKeyEntry';
+import { Pagination } from '../pagination/Pagination';
 import { Share } from '../share/Share';
 import { FoxSays } from '../fox/FoxSays';
 import fox from '../../assets/img/fox-transparent.png';
@@ -113,9 +114,13 @@ const smallButtonStyle = {
 };
 
 const maybeOpenPanel = async (job) => {
-  if (!(job.scrape?.concurrency < 0)) return;
-  if (job.urls?.action == 'current') return;
-  return openPanel();
+  let shouldOpen = true;
+
+  if (!(job.scrape?.concurrency < 0)) shouldOpen = false;
+  if (job.urls?.action == 'current') shouldOpen = false;
+  if (job.urls?.pagination?.follow) shouldOpen = true;
+
+  if (shouldOpen) openPanel();
 }
 
 const openPanel = async () => {
@@ -296,9 +301,9 @@ const UrlsStep = ({ job, isPopup }) => {
   const [showCurrentButton, setShowCurrentButton] = useState(false);
   const [tab, setTab] = useState('gather');
   const [currentUrl, setCurrentUrl] = useState('');
+  const [pagination, setPagination] = useState();
 
   const timeoutRef = useRef(null);
-
 
   useEffect(() => {
     const update = () => {
@@ -338,6 +343,8 @@ const UrlsStep = ({ job, isPopup }) => {
 
   const numResults = (job?.results?.targets || []).length;
   const currentStep = numResults == 0 ? 1 : 2;
+
+  const updatePagination = (f) => updateJob('pagination', f, setPagination);
 
   const updateJob = (field, val, setter) => {
     setter(val);
@@ -524,6 +531,11 @@ const UrlsStep = ({ job, isPopup }) => {
           {currentUrl}
         </div>
       </div>
+      <Pagination
+        url={currentUrl}
+        onChange={updatePagination}
+      />
+
       {questionNode}
     </div>
   );
@@ -839,7 +851,7 @@ const Results = ({
       {/*targets && targets.length > 0 && newScrapeNode('URL')*/}
     </th>);
 
-  // headerNodes.push(<th key="text">Link Text</th>);
+  headerNodes.push(<th key="text">Link Text</th>);
 
   headerNodes = headerNodes.concat(
     headers.map(header => (
@@ -886,7 +898,7 @@ const Results = ({
           <div style={{ width: 80, textAlign: 'center' }}>
             {target.loading && <Loading width={14} />}
             {!target.loading && target.status}
-            {/*num && num > 1 ? (' (' + num + ')') : ''*/}
+            {num && num > 1 ? (' (' + num + ')') : ''}
           </div>
         </td>
       );
@@ -904,10 +916,10 @@ const Results = ({
             {target.url}
           </td>);
 
-        // cells.push(
-        //   <td key="linktext" style={{ width: 180, overflow: 'hidden' }}>
-        //     {target.text}
-        //   </td>);
+        cells.push(
+          <td key="linktext" style={{ width: 180, overflow: 'hidden' }}>
+            {target.text}
+          </td>);
 
         for (const header of headers) {
           cells.push(
@@ -1267,6 +1279,33 @@ const Inner = ({ isPopup, onNewJob, onNewJobFromUrls, onShowSettings }) => {
   const currentStep = (job?.results?.targets || []).length == 0 ? 1 : 2;
   const noAnswers = (job?.results?.targets || []).filter(r => !!r.answer).length == 0;
 
+  const controlsNode = (
+    <div>
+      <button
+        className="btn btn-gray"
+        disabled={currentStep < 2}
+        onClick={() => downloadJobCsv(job)}
+        >
+        <FaFileCsv size={12} /> Download CSV
+      </button>{' '}
+      <Share job={job} />{' '}
+      <button
+        className="btn btn-gray"
+        disabled={currentStep < 2}
+        onClick={clearAll}
+        >
+        Clear All Data
+      </button>{' '}
+      <button
+        className="btn btn-gray"
+        disabled={currentStep < 2 || noAnswers}
+        onClick={clearScrape}
+        >
+        Clear Answers
+      </button>
+    </div>
+  );
+
   return (
     <div style={mainStyle}>
 
@@ -1321,28 +1360,8 @@ const Inner = ({ isPopup, onNewJob, onNewJobFromUrls, onShowSettings }) => {
 
       <br />
       <br />
-      <button
-        className="btn btn-gray"
-        disabled={currentStep < 2}
-        onClick={() => downloadJobCsv(job)}
-        >
-        <FaFileCsv size={12} /> Download CSV
-      </button>{' '}
-      <Share job={job} />{' '}
-      <button
-        className="btn btn-gray"
-        disabled={currentStep < 2}
-        onClick={clearAll}
-        >
-        Clear All Data
-      </button>{' '}
-      <button
-        className="btn btn-gray"
-        disabled={currentStep < 2 || noAnswers}
-        onClick={clearScrape}
-        >
-        Clear Answers
-      </button>
+
+      {(job?.results?.targets || []).length > 0 && controlsNode}
 
       <Results
         job={job}

@@ -27,11 +27,13 @@ export const scrapePage = async (
   };
 
 
-  const clip = 170000;
+  const clip = 60000;
   const len = page.text.length + page.html.length;
-  const textChunkSize =  45000;
-  const htmlChunkSize = 115000;
+  const percentHtml = page.html.length / len;
+  const textChunkSize = Math.floor(clip * (1 - percentHtml));
+  const htmlChunkSize = Math.floor(clip * percentHtml);
 
+  console.log('clip page:', page);
   console.log('clip should we clip?', len, clip);
   console.log('clip len text', page.text.length);
   console.log('clip len html', page.html.length);
@@ -49,7 +51,7 @@ export const scrapePage = async (
 
     const perPageCopy = (
       perPage == 'multiple' ?
-        'You should look for MULTIPLE items on this page, expect itemCount > 1' :
+        'You should look for MULTIPLE items on this page, expect itemCount > 1. Be sure to FIND ALL THE ITEMS' :
         'You should look for a SINGLE item on this page, expect itemCount == 1');
 
     const context = {
@@ -83,7 +85,7 @@ export const scrapePage = async (
           if (!await isActive(roundId)) return answer;
           const items = existing.concat(partial.slice(1));
 
-          let percent = items.length / expectedItemCount;
+          let percent = (items.length / expectedItemCount);
           // Slow down percent above cap in case AI mis-estimated
           const cap = 0.7;
           if (percent > cap) {
@@ -127,7 +129,7 @@ export const scrapePage = async (
   let answer = [];
   let offset = 0;
 
-  const max = perPage == 'single' ? 3 : 10;
+  const max = perPage == 'single' ? 3 : 20;
   const numTextCunks = page.text.length / textChunkSize;
   const numHtmlCunks = page.html.length / htmlChunkSize;
   const numChunks = Math.ceil(Math.min(max, Math.max(numTextCunks, numHtmlCunks)));

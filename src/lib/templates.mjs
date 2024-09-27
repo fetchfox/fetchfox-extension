@@ -2,6 +2,10 @@ export const getTemplate = (name) => {
   return {
     genJob: genJobTemplate,
     genJob2: genJob2Template,
+
+    pagination: paginationTemplate,
+    paginationPickNext: paginationPickNextTemplate,
+
     gather: gatherTemplate,
     scrape: scrapeTemplate,
     name: nameTemplate,
@@ -282,4 +286,53 @@ Below is the text from the page:
 Below is the HTML from the page:
 
 {{html}}
+`;
+
+export const paginationTemplate = `You are part of a web scraping program, and your goal is to look for pagination on a page. You will be given a list of links, and your goal is to find the ones that are related to pagination. The list contains the inner text of links, and also their URLs. You will take this list, look for pagination links, and generate a new list of only the matching items.
+
+Your response will be ONLY the "id" field of matching items, and the "pageNumber" if applicable. Do NOT include the actual URL. The "id" field will be used to generate the results later, you only need to include the "id" and "pageNumber" fields.
+
+You will return a JSON object with the following fields, in this order:
+
+- "hasPagination": Either "yes" or "no". Answer "yes" if there is pagination in the links you got, otherwise answer "no"
+
+- "nextLink": The ID of the link to go the next page, if any. Only include links that relate to the next pagination result, not other links that show more results.
+
+- "pageLinks": Array of IDs linking to specific pages. Include the ID and the pageNumber in a JSON object. Determine the pageNumber by looking at the "text", "url", and "html" fields in the link.
+
+Example of valid output:
+
+{
+  "hasPagination": "yes",
+  "nextLink": 11,
+  "pageLinks": [
+    { "id": 15, "pageNumber": 5 },
+    { "id": 16, "pageNumber": 17 },
+    { "id": 17, "pageNumber": 18 },
+    { "id": 19, "pageNumber": 20 }
+  ]
+}
+
+{
+  "hasPagination": "no"
+}
+
+The list of links is below:
+{{list}}
+`;
+
+export const paginationPickNextTemplate = `You are part of a web scraping program, and your goal is to find the "Next" page pagination link out of a list. You will receive multiple candidate links, and your goal is to pick the one MOST LIKELY to be the "Next" page pagination link.
+
+Your response will be ONLY the "id" field of link, as a JSON object.
+
+Example 1 of valid output:
+
+{ "id": 3 }
+
+Example 1 of valid output:
+
+{ "id": 75 }
+
+The list of candidates is below:
+{{list}}
 `;
