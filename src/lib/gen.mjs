@@ -66,12 +66,12 @@ export const genJob = async (scrapePrompt, url, page) => {
     job.urls.action = 'current';
     job.urls.currentUrl = url;
     job.urls.question = answer.itemDescription;
-    job.scrape.perPage = 'multiple';
+    job.urls.perPage = answer.perPage || 'multiple';
     job.scrape.concurrency = -1;
   } else if (answer?.scrapeType == 'multiPage') {
     job.urls.action = 'gather',
     job.urls.question = answer.itemDescription + ': ' + answer.gatherPrompt;
-    job.scrape.perPage = 'single';
+    job.urls.perPage = 'single';
   }
 
   return job;

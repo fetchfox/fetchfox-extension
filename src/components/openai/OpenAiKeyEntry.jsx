@@ -170,7 +170,7 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
             </p>
             <div>
               <a
-                className="btn btn-gray clickable"
+                className={`btn ${openAiKey ? 'btn-gray' : 'btn-primary'} clickable`}
                 style={{ display: 'inline-block', marginBottom: 10 }}
                 href="https://platform.openai.com/api-keys"
                 target="_blank"

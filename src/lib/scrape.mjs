@@ -49,14 +49,21 @@ export const scrapePage = async (
       offset * htmlChunkSize,
       (offset + 1) * htmlChunkSize);
 
-    const perPageCopy = (
-      perPage == 'multiple' ?
-        'You should look for MULTIPLE items on this page, expect itemCount > 1. Be sure to FIND ALL THE ITEMS' :
-        'You should look for a SINGLE item on this page, expect itemCount == 1');
+    console.log('building prompt using perPage', perPage);
+
+    let perPageCopy;
+    if (perPage == 'single') {
+      perPageCopy = 'You should look for a SINGLE item on this page, expect itemCount == 1';
+    } else if (perPage == 'multiple') {
+      perPageCopy = 'You should look for MULTIPLE items on this page, expect itemCount > 1. Be sure to FIND ALL THE ITEMS'      
+    } else {
+      perPageCopy = 'The user wants you to GUESS how many items are on this page, itemCount may be 1 or more than 1';
+    }
 
     const context = {
       url: page.url,
       questions: JSON.stringify(translateToHeaders(questions), null, 2),
+      itemDescription,
       perPageCopy,
       text,
       html,

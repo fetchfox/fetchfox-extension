@@ -70,6 +70,7 @@ import { HelpBar } from '../common/HelpBar';
 import { GlobalError } from '../common/GlobalError';
 import { OpenAiKeyEntry } from '../openai/OpenAiKeyEntry';
 import { Pagination } from '../pagination/Pagination';
+import { PerPage } from '../perpage/PerPage';
 import { Share } from '../share/Share';
 import { FoxSays } from '../fox/FoxSays';
 import fox from '../../assets/img/fox-transparent.png';
@@ -302,6 +303,7 @@ const UrlsStep = ({ job, isPopup }) => {
   const [tab, setTab] = useState('gather');
   const [currentUrl, setCurrentUrl] = useState('');
   const [pagination, setPagination] = useState();
+  const [perPage, setPerPage] = useState();
 
   const timeoutRef = useRef(null);
 
@@ -344,14 +346,9 @@ const UrlsStep = ({ job, isPopup }) => {
   const numResults = (job?.results?.targets || []).length;
   const currentStep = numResults == 0 ? 1 : 2;
 
-  const updatePagination = (f) => updateJob('pagination', f, setPagination);
-
   const updateJob = (field, val, setter) => {
     setter(val);
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     const updated = JSON.parse(JSON.stringify(job.urls));
     updated[field] = val;
     timeoutRef.current = setTimeout(
@@ -365,6 +362,8 @@ const UrlsStep = ({ job, isPopup }) => {
   const updateList = (val) => updateJob('list', val, setList);
   const updateQuestion = (val) => updateJob('question', val, setQuestion);
   const updateShouldClear = (val) => updateJob('shouldClear', val, setShouldClear);
+  const updatePagination = (f) => updateJob('pagination', f, setPagination);
+  const updatePerPage = (f) => updateJob('perPage', f, setPerPage);
 
   const cleanManualUrls = (x) => x
     .split('\n')
@@ -392,6 +391,7 @@ const UrlsStep = ({ job, isPopup }) => {
     updateUrl(job.urls?.url);
     updateManualUrls(job.urls?.manualUrls);
     updatePagination(job.urls?.pagination);
+    updatePerPage(job.urls?.perPage);
     updateList(job.urls?.list);
     updateQuestion(job.urls?.question);
     updateShouldClear(!!(job.urls?.shouldClear));
@@ -433,6 +433,13 @@ const UrlsStep = ({ job, isPopup }) => {
       setManualUrls('');
     }
   }
+
+  const perPageNode = (
+    <PerPage
+      perPage={perPage}
+      onChange={updatePerPage}
+    />
+  );
 
   const questionNode = (
     <div>
@@ -504,6 +511,7 @@ const UrlsStep = ({ job, isPopup }) => {
       </div>
 
       {questionNode}
+      {perPageNode}
 
       <div style={{ marginTop: 10 }}>
         <button
@@ -543,6 +551,7 @@ const UrlsStep = ({ job, isPopup }) => {
       {/*<pre>{JSON.stringify(job.urls?.pagination, null, 2)}</pre>*/}
 
       {questionNode}
+      {perPageNode}
     </div>
   );
 
@@ -567,9 +576,9 @@ https://www.example.com/page-2
           value={manualUrls}
         />
       </div>
-
-      {questionNode}
       <Error message={manualError} />
+      {questionNode}
+      {perPageNode}
     </div>
   );
 
@@ -1408,18 +1417,16 @@ export const Scrape = ({ isPopup }) => {
       setStep('settings');
       setLoading(false);
     } else {
-      if (!step) {
-        setStep('welcome');
-        setLoading(false);
-      }
+      if (!step) setStep('welcome');
     }
   }, [openAiKey, openAiPlan, loadingOpenAiKey]);
 
   useEffect(() => {
-
     if (!activeJob) return;
     // if (step != 'welcome') return;
-    // if (!loading) return;
+    if (!loading) return;
+
+    console.log('activeJob changed, check if we need to change the step', step);
 
     getActiveTab()
       .then((tab) => {
@@ -1429,10 +1436,12 @@ export const Scrape = ({ isPopup }) => {
 
         if (jobUrl && jobUrl.indexOf(tabHostname) == -1) {
           // New domain, assume new job
+          console.log('new domain, so change the step');
           setLoading(false);
           setStep('welcome');
         } else {
           // Pick up where we left off
+          console.log('not changing step');
           getKey('scrapeStep').then((s) => {
             setLoading(false);
             setStep(s);
@@ -1505,9 +1514,9 @@ export const Scrape = ({ isPopup }) => {
   return (
     <div style={{ minHeight: 560 }}>
       <HelpBar />
-
       <GlobalError />
+      {/*<div style={{ color: 'white' }}>STEP:{step}</div>*/}
       {body}
     </div>
-  )
+  );
 }

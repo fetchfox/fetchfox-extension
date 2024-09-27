@@ -95,6 +95,8 @@ const runJob = async (job, tabId) => {
       // Merge with existing pagination results, if any
       targets = [];
       const existing = job.results?.targets || [];
+      const partialComplete = existing.filter(x => x.status != 'scraped').length > 0;
+
       for (const link of job.urls.pagination.links) {
         console.log('look at pagination link', link);
 
@@ -107,10 +109,8 @@ const runJob = async (job, tabId) => {
 
         console.log('pagination filtered and got e', e);
 
-        if (e.length > 0) {
-          // Skip it, its already scraped
-
-          // targets.push(e[0]);
+        if (partialComplete && e.length > 0) {
+          // Job is partially complete, and we already scraped this one. Skip it.
         } else {
           targets.push({ url: link.url, text });
         }
@@ -337,10 +337,7 @@ const runScrape = async (job, urls, percentAdd) => {
       result = await scrapePage(
         page,
         job.scrape.questions,
-
-        // job.scrape.perPage || 'single',
-        (job.urls.action == 'current' ? 'multiple' : 'single'),
-
+        job.urls?.perPage,
         itemDescription,
         extraRules,
         cb);

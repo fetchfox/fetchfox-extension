@@ -70,20 +70,53 @@ const expander = (page, item) => {
 export const findPagination = async (page) => {
   const roundId = await getRoundId();
 
-  const cached = await readCache('pagination', [roundId, page.url]);
+  const cached = await readCache('pagination', [page.url]);
   if (cached) {
     console.log('pagination found cached', cached);
     return cached;
   }
 
-  const links = page.links;
+  const likelyPagintion = (url) => {
+    const regexes = [
+      /page=/i,
+      /offset=/i,
+      /start=/i,
+      /p=\d+/i,
+      /pg=\d+/i,
+      /page-\d+/i,
+      /page_\d+/i,
+      /start=\d+/i,
+      /(\?|&)pageno=\d+/i,
+      /(\?|&)paging=\d+/i,
+      /(\?|&)limitstart=\d+/i,
+      /(\?|&)skip=\d+/i,
+      /part=\d+/i,
+      /section=\d+/i,
+      /count=\d+/i,
+    ];
+    for (const regex of regexes) {
+      if (url.match(regex)) return true;
+    }
+    return false;
+  };
+  const links = JSON.parse(JSON.stringify(page.links));
+  links.sort((a, b) => {
+    const [la, lb] = [likelyPagintion(a.url), likelyPagintion(b.url)];
+    if (la && lb || (!la && !lb)) return 0;
+    if (la) return -1;
+    if (lb) return 1;
+  });
+  console.log('pagination sorted links:', links);
+
   const limit = 10000;
   const chunked = chunkList(links.map(slimmer), limit);
 
   let next = [];
   let pages = [];
 
-  for (let i = 0; i < chunked.length; i++) {
+  const max = Math.min(4, chunked.length);
+
+  for (let i = 0; i < max; i++) {
     if (!await isActive(roundId)) break;
     const chunk = chunked[i];
     console.log('find pagination from chunk:', chunk);
@@ -142,7 +175,7 @@ export const findPagination = async (page) => {
   // }
 
   const result = { pages: pages.slice(0, 20), next: next[0] };
-  setCache('pagination', [roundId, page.url], result);
+  setCache('pagination', [page.url], result);
   return result;
 }
 

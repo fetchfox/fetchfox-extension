@@ -111,6 +111,8 @@ You will return a JSON object with the following fields, in this order:
 
 - "scrapeType": Your FINAL answer for the scrape type, either "singlePage" or "multiPage". Change only if you need to after thinking about it in "scrapeTypeReason"
 
+- "perPage": IF scrapeType is "singlePage", answer either "single" or "multiple". Answer "single" if there is only one item on the page to scrape. Answer "multiple" if there are multiple items on the page to scrape.
+
 - "gatherPrompt": If this is "singlePage", return "". If this is "multiPage", describe how to find the linked pages that contain all the detail fields. Exclusions are important to clear up confusion.
 
 {{extraRules}}
