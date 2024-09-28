@@ -16,6 +16,8 @@ export const genJob = async (scrapePrompt, url, page) => {
   const text = page?.text || '';
   const html = page?.html || '';
 
+  console.log('gen job got url:', url);
+
   const hostname = (new URL(url)).hostname;
   let extraRules = domainRules[hostname];
   if (extraRules) {
@@ -110,30 +112,7 @@ export const genJobFromUrls = async (prompt, urls) => {
 
   job.urls.action = 'manual';
   job.urls.manualUrls = urlsString;
+  job.scrape.concurrency = 3;
 
   return job;
-
-  // const unique = [];
-  // const seen = {};
-  // for (const url of urls) {
-  //   if (seen[url]) continue;
-  //   unique.push(url);
-  //   seen[url] = true;
-  // }
-  // const urlString = unique.join('\n') + '\n';
-  // return {
-  //   id: await sendNextIdMessage(),
-  //   name: 'Untitled Scrape',
-  //   urls: {
-  //     action: 'gather',
-  //     url: urlString,
-  //     manualUrls: urlString,
-  //     list: [],
-  //     question: '',
-  //   },
-  //   scrape: {
-  //     action: 'scrape',
-  //     questions: [],
-  //   },
-  // };
 }

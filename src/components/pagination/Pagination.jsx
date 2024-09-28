@@ -55,7 +55,7 @@ export const Pagination = ({ onChange, follow, count }) => {
       );
 
       const optionNodes = pagination.links.pages.map(link => (
-        <option key={link.pageNumber} value={link.pageNumber}>up to page {link.pageNumber} ({link.url})</option>
+        <option key={link.pageNumber} value={link.pageNumber}>up to {link.pageNumber == 0 ? 'current page' : `page ${link.pageNumber}`} ({link.url})</option>
       ));
 
       paginationOptions = (

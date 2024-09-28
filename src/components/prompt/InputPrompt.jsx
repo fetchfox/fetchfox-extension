@@ -3,18 +3,26 @@ import Textarea from 'react-expanding-textarea';
 import { Loading } from '../common/Loading';
 import { FaArrowRight } from 'react-icons/fa';
 
-export const InputPrompt = ({ onSubmit, onChange, prompt, loading }) => {
+export const InputPrompt = ({ onSubmit, onChange, prompt, loading, disabled }) => {
   const timeoutRef = useRef(null);
+  const handleSubmit = (e) => {
+    if (loading) return;
+    if (disabled) return;
+    onSubmit(e);
+  };
+
   const handleKeyDown = (e) => {
     if (e.key == 'Enter' && !e.shiftKey) {
-      onSubmit(e);
+      e.preventDefault();
+      handleSubmit(e);
     } else {
+      console.log('handleKeyDown call onchange', e.target.value);
       onChange(e);
     }
   }
 
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={handleSubmit}>
       <div style={{ position: 'relative',
                     width: '100%',
                     marginTop: 8,
@@ -33,7 +41,7 @@ export const InputPrompt = ({ onSubmit, onChange, prompt, loading }) => {
                      borderRadius: 15,
                      display: 'inline-block',
                    }}
-            disabled={loading}
+            disabled={loading || disabled}
             >
             <div style={{ display: 'flex',
                           justifyContent: 'center',

@@ -153,11 +153,31 @@ const runJob = async (job, tabId) => {
   let targets;
   let gatherShare = 0.25;
 
+  const mergeTargets = (newTargets) => {
+    // Merge with existing pagination results, if any
+    const merged = [];
+    const existing = job.results?.targets || [];
+    const partialComplete = existing.filter(x => x.status != 'scraped').length > 0;
+    for (const nt of newTargets) {
+      const e = existing
+        .filter(t => t.url == nt.url)
+        .filter(t => t.text == nt.text)
+        .filter(t => t.status == 'scraped');
+      if (partialComplete && e.length > 0) {
+        // Job is partially complete, and we already scraped this one. Skip it.
+      } else {
+        merged.push(nt);
+      }
+    }
+    return merged
+  }
+
   if (job.urls.action == 'manual') {
     gatherShare = 0;
-    targets = splitUrls(job.urls.manualUrls)
+    const manualTargets = splitUrls(job.urls.manualUrls)
       .map(url => ({ url, text: '(manual)' }));
-    await setJobResults(job.id, { targets })
+    targets = mergeTargets(manualTargets);
+    await setJobResults(job.id, { targets });
 
   } else if (job.urls.action == 'current') {
     const active = await getActiveTab();
@@ -172,30 +192,13 @@ const runJob = async (job, tabId) => {
     gatherShare = 0;
 
     if (job.urls.pagination?.follow) {
-      // Merge with existing pagination results, if any
-      targets = [];
-      const existing = job.results?.targets || [];
-      const partialComplete = existing.filter(x => x.status != 'scraped').length > 0;
-
+      const paginationTargets = [];
       for (const link of job.urls.pagination.links) {
         console.log('look at pagination link', link);
-
         const text = link.pageNumber == 0 ? '(current)' : `(page ${link.pageNumber})`;
-
-        const e = existing
-          .filter(t => t.url == link.url)
-          .filter(t => t.text == text)
-          .filter(t => t.status == 'scraped');
-
-        console.log('pagination filtered and got e', e);
-
-        if (partialComplete && e.length > 0) {
-          // Job is partially complete, and we already scraped this one. Skip it.
-        } else {
-          targets.push({ url: link.url, text });
-        }
+        paginationTargets.push({ url: link.url, text });
       }
-
+      targets = mergeTargets(paginationTargets);
       console.log('pagination gave targets:', targets);
     } else {
       targets = [{ url, text: '(current)' }];

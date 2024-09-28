@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiCheck, FiEdit2 } from 'react-icons/fi';
 import Textarea from 'react-expanding-textarea';
+import { MdEditSquare } from 'react-icons/md';
 import {
   IoMdSettings,
   IoMdAddCircle,
@@ -345,6 +346,7 @@ const UrlsStep = ({ job, isPopup }) => {
   const updateTabAndAction = (t) => {
     setTab(t);
     updateAction(t);
+    updatePerPage('guess');
   }
 
   const numResults = (job?.results?.targets || []).length;
@@ -791,7 +793,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
         <FiPlus size={14} />&nbsp;Add Field
       </div>
 
-      {job.urls?.action == 'gather' && controlsNode}
+      {['gather', 'manual'].includes(job.urls?.action) && controlsNode}
 
       {job.urls.action == 'gather' && <div style={{ marginTop: 10 }}>
         <button
@@ -811,12 +813,19 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
   const [prompt, setPrompt] = useState('');
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState();
+  const [manual, setManual] = useState();
+  const [manualUrls, setManualUrls] = useState('');
+  const [disabled, setDisabled] = useState();
   const jobs = useJobs();
 
   useEffect(() => {
     getActiveTab().then(tab => setUrl(tab.url));
     getKey('masterPrompt').then(val => setPrompt(val || ''));
   }, []);
+
+  useEffect(() => {
+    setDisabled(manual && !manualUrls.trim());
+  }, [manual, manualUrls]);
 
   const examples = [
     [
@@ -862,9 +871,6 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
     await setPrompt(prompt);
     await setUrl(url);
     const resp = await handleSubmit(e, prompt, url);
-
-    console.log('example resp', resp);
-
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.update(tabs[0].id, { url });
     });
@@ -913,20 +919,23 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
   );
 
   const handleSubmit = async (e, prompt, url, isActive) => {
-    if (e.shiftKey) {
-      setPrompt(e.target.value + '\n');
-      return;
-    }
     e.preventDefault();
-
-    if (loading) return;
-
     setLoading(true);
+
+    console.log('handle submit!! 3');
+
     const page = isActive ? (await getTabData()) : null;
     const useUrl = isActive ? (await getActiveTab()).url : url;
+
     try {
-      const job = await genJob(prompt, useUrl, page);
-      console.log('==== DONE ====');
+      let job;
+      console.log('manual urls?', manual);
+      if (manual) {
+        job = await genJobFromUrls(prompt, manualUrls.split('\n'));
+      } else {
+        job = await genJob(prompt, useUrl, page);
+      }
+      console.log('==== GEN JOB DONE ====');
       console.log('genjob gave:', job);
       return onStart(job);
     } catch (e) {
@@ -936,18 +945,15 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
     }
   };
 
+
   const timeoutRef = useRef(null);
   const updatePrompt = (e) => {
-    if (e.key == 'Enter' && !e.shiftKey) {
-      handleSubmit(e, prompt, url, true);
-      setKey('masterPrompt', '');
-    } else {
-      setPrompt(e.target.value);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(
-        () => setKey('masterPrompt', e.target.value),
-        100);
-    }
+    console.log('updatePrompt', e.target.value);
+    setPrompt(e.target.value);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(
+      () => setKey('masterPrompt', e.target.value),
+      100);
   }
 
   const inputNode = (
@@ -956,6 +962,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
       onChange={updatePrompt}
       prompt={prompt}
       loading={loading}
+      disabled={disabled}
     />
   );
 
@@ -971,6 +978,38 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
       </div>
     </div>
   );
+
+  let urlNode
+  if (manual) {
+    urlNode = (
+      <div style={{ color: '#bbb' }}>
+        <div>Scrape these URLs (one per line)</div>
+        <Textarea
+          style={{ width: '100%',
+                   fontFamily: 'sans-serif',
+                   fontSize: 14,
+                   margin: '5px 0',
+                   padding: 8,
+                   paddingLeft: 12,
+                   paddingRight: 36,
+                   border: 0,
+                   borderRadius: 8,
+                   minHeight: 60,
+                   maxHeight: 120,
+                 }}
+          value={manualUrls}
+          onChange={(e) => setManualUrls(e.target.value)}
+        />
+      </div>
+    );
+  } else {
+    urlNode = (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#bbb' }}>
+        <div>Scrape <b style={{ color: '#fff' }}>{url}</b></div>
+        <MdEditSquare style={{ cursor: 'pointer' }} onClick={() => { setManual(true); setManualUrls(url) }} />
+      </div>
+    );
+  }
 
   return (
     <div style={{ ...mainStyle, paddingBottom: 10, paddingTop: 40 }}>
@@ -992,8 +1031,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
                     padding: 10,
                     borderRadius: 10,
                   }}>
-        <div style={{ color: '#bbb' }}>Scrape <b style={{ color: '#fff' }}>{url}</b></div>
-
+        {urlNode}
         <div style={{ position: 'relative' }}>
           {/*loading && loadingNode*/}
           {inputNode}
@@ -1011,7 +1049,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
   );
 }
 
-const Inner = ({ isPopup, onNewJob, onNewJobFromUrls, onShowSettings }) => {
+const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
 
   // const [showSettings, setShowSettings] = useState();
   const { key: openAiKey, plan: openAiPlan, loading: loadingOpenAiKey } = useOpenAiKey('loading');
@@ -1143,7 +1181,6 @@ const Inner = ({ isPopup, onNewJob, onNewJobFromUrls, onShowSettings }) => {
         targets={job?.results?.targets || []}
         onScrape={handleScrape}
         onRemove={handleRemove}
-        onNewJobFromUrls={onNewJobFromUrls}
       />
 
       <StatusBar onRun={handleRun} />
@@ -1232,17 +1269,14 @@ export const Scrape = ({ isPopup }) => {
     await saveJob(job);
     await setActiveJob(job.id);
     await setKey('scrapeStep', 'inner');
-    setStep('inner');
+    await setStep('inner');
+    setKey('masterPrompt', '');
+    window.scrollTo(0, 0);
   };
 
   const handleNew = async () => {
     await setKey('scrapeStep', 'welcome');
     await setStep('welcome');
-  }
-
-  const handleNewFromUrls = async (urls) => {
-    handleStart(await genJobFromUrls(urls));
-    window.scrollTo(0, 0);
   }
 
   let body;
@@ -1274,7 +1308,6 @@ export const Scrape = ({ isPopup }) => {
       <Inner
         isPopup={isPopup}
         onNewJob={handleNew}
-        onNewJobFromUrls={handleNewFromUrls}
         onShowSettings={() => setStep('settings')}
       />
     );
