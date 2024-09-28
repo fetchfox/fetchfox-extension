@@ -69,7 +69,10 @@ chrome.storage.onChanged.addListener((changes) => {
 
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.inFlight) {
-    const context = document.createElement('canvas').getContext('2d');
+    const canvas = new OffscreenCanvas(100, 100);
+    const context = canvas.getContext('2d');
+    // const context = document.createElement('canvas').getContext('2d');
+
     const start = new Date();
     const lines = 16;
     const cW = 40;
@@ -291,8 +294,8 @@ const runGather = async (job, tabId, percentFactor) => {
 
     console.log('gather got page:', page);
 
-    if (page.error) {
-      console.log('Error, skipping' + url, page.error);
+    if (page?.error) {
+      console.log('Error, skipping' + url, page?.error);
       await setScrapeStatus(job.id, roundId, [url], 'error');
       continue;
     }

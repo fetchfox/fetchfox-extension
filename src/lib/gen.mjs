@@ -95,8 +95,10 @@ export const genBlankJob = async () => {
 export const genJobFromUrls = async (prompt, urls) => {
   const unique = [];
   const seen = {};
+  const validUrls = [];
   for (const url of urls) {
     if (seen[url]) continue;
+    try { new URL(url) } catch(e) { continue }
     unique.push(url);
     seen[url] = true;
   }
@@ -104,7 +106,7 @@ export const genJobFromUrls = async (prompt, urls) => {
 
   const job = await genJob(
     prompt,
-    urls[0],
+    unique[0],
     {
       text: `not available, guess context based on these urls: ${urlsString}`,
       html: 'not availble',
