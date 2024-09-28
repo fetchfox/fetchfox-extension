@@ -7,6 +7,7 @@ import {
   IoIosArrowDroprightCircle,
 } from 'react-icons/io';
 import { IoPlayCircle, IoCloseCircle } from 'react-icons/io5';
+import { NewScrape } from '../newscrape/NewScrape';
 import { Loading } from '../common/Loading';
 
 export const Results = ({
@@ -47,7 +48,8 @@ export const Results = ({
   const newScrapeNode = (header) => {
     return (
       <div style={{ whiteSpace: 'nowrap', margin: '4px 0' }}>
-        <button
+        <NewScrape job={job} header={header} />
+        {/*<button
           onMouseEnter={() => setHighlight(header)}
           onMouseLeave={() => setHighlight(null)}
           onClick={() => handleNewScrape(header)}
@@ -57,6 +59,7 @@ export const Results = ({
             Scrape These <IoIosArrowDroprightCircle size={14} />
           </div>
         </button>
+        */}
       </div>
     )
   }

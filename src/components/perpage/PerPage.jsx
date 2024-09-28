@@ -8,13 +8,15 @@ import { Pills } from '../common/Pills';
 
 export const PerPage = ({ perPage, onChange }) => {
   return (
-    <div>
-      <p>How many items per page?</p>
-      <Pills value={perPage} onChange={onChange}>
-        <div key="single">One</div>
-        <div key="multiple">Multiple</div>
-        <div key="guess">Let AI Guess</div>
-      </Pills>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div><p>How many items per page?</p></div>
+      <div>
+        <Pills value={perPage} onChange={onChange}>
+          <div key="single">One</div>
+          <div key="multiple">Multiple</div>
+          <div key="guess">Let AI Guess</div>
+        </Pills>
+      </div>
     </div>
   );
 }

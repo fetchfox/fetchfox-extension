@@ -92,7 +92,7 @@ export const scrapePage = async (
           if (!await isActive(roundId)) return answer;
           const items = existing.concat(partial.slice(1));
 
-          let percent = (items.length / expectedItemCount);
+          let percent = (offset/numChunks) + (1/numChunks) * (items.length / expectedItemCount);
           // Slow down percent above cap in case AI mis-estimated
           const cap = 0.7;
           if (percent > cap) {

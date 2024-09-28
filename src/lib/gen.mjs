@@ -13,13 +13,10 @@ const domainRules = {
 };
 
 export const genJob = async (scrapePrompt, url, page) => {
-  const count = 5000;
-
   const text = page?.text || '';
   const html = page?.html || '';
 
   const hostname = (new URL(url)).hostname;
-  console.log('hostname for job:', hostname);
   let extraRules = domainRules[hostname];
   if (extraRules) {
     extraRules = `Follow these IMPORTANT instructions SPECIFIC to ${hostname}:\n${extraRules}`;
@@ -37,7 +34,6 @@ export const genJob = async (scrapePrompt, url, page) => {
       prompt: scrapePrompt || '(not given, guess based on the page content)',
       text: text.substr(0, 30000),
       html: html.substr(0, 6000),
-      count,
       extraRules,
     },
     null,
@@ -94,7 +90,7 @@ export const genBlankJob = async () => {
   };
 }
 
-export const genJobFromUrls = async (urls) => {
+export const genJobFromUrls = async (prompt, urls) => {
   const unique = [];
   const seen = {};
   for (const url of urls) {
@@ -102,20 +98,42 @@ export const genJobFromUrls = async (urls) => {
     unique.push(url);
     seen[url] = true;
   }
-  const urlString = unique.join('\n') + '\n';
-  return {
-    id: await sendNextIdMessage(),
-    name: 'Untitled Scrape',
-    urls: {
-      action: 'gather',
-      url: urlString,
-      manualUrls: urlString,
-      list: [],
-      question: '',
-    },
-    scrape: {
-      action: 'scrape',
-      questions: [],
-    },
-  };
+  const urlsString = unique.join('\n') + '\n';
+
+  const job = await genJob(
+    prompt,
+    urls[0],
+    {
+      text: `not available, guess context based on these urls: ${urlsString}`,
+      html: 'not availble',
+    });
+
+  job.urls.action = 'manual';
+  job.urls.manualUrls = urlsString;
+
+  return job;
+
+  // const unique = [];
+  // const seen = {};
+  // for (const url of urls) {
+  //   if (seen[url]) continue;
+  //   unique.push(url);
+  //   seen[url] = true;
+  // }
+  // const urlString = unique.join('\n') + '\n';
+  // return {
+  //   id: await sendNextIdMessage(),
+  //   name: 'Untitled Scrape',
+  //   urls: {
+  //     action: 'gather',
+  //     url: urlString,
+  //     manualUrls: urlString,
+  //     list: [],
+  //     question: '',
+  //   },
+  //   scrape: {
+  //     action: 'scrape',
+  //     questions: [],
+  //   },
+  // };
 }

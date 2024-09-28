@@ -74,6 +74,7 @@ import { PerPage } from '../perpage/PerPage';
 import { Share } from '../share/Share';
 import { FoxSays } from '../fox/FoxSays';
 import { Results } from './Results';
+import { InputPrompt } from '../prompt/InputPrompt';
 import fox from '../../assets/img/fox-transparent.png';
 import './Scrape.css';
 
@@ -857,45 +858,6 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
     marginTop: jobs.length == 0 ? 40 : 20,
   };
 
-  const timeoutRef = useRef(null);
-  const handleKeyDown = (e) => {
-    if (e.key == 'Enter' && !e.shiftKey) {
-      handleSubmit(e, prompt, url, true);
-      setKey('masterPrompt', '');
-    } else {
-      setPrompt(e.target.value);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(
-        () => setKey('masterPrompt', e.target.value),
-        100);
-    }
-  }
-
-  const handleSubmit = async (e, prompt, url, isActive) => {
-    if (e.shiftKey) {
-      setPrompt(e.target.value + '\n');
-      return;
-    }
-    e.preventDefault();
-
-    if (loading) return;
-
-    setLoading(true);
-    const page = isActive ? (await getTabData()) : null;
-    const useUrl = isActive ? (await getActiveTab()).url : url;
-    try {
-      const job = await genJob(prompt, useUrl, page);
-
-      console.log('==== DONE ====');
-      console.log('genjob gave:', job);
-      return onStart(job);
-    } catch (e) {
-      setGlobalError('Error generating job, try again: ' + e);
-      setLoading(false);
-      throw e;
-    }
-  };
-
   const handleExample = async (e, prompt, url) => {
     await setPrompt(prompt);
     await setUrl(url);
@@ -950,59 +912,51 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
     </div>
   );
 
-  const inputNode = (
-    <form onSubmit={(e) => handleSubmit(e, prompt, url, true)}>
-      <div style={{ position: 'relative',
-                    width: '100%',
-                    marginTop: 8,
-                    opacity: loading ? 0.5 : 1,
-                  }}>
-        <div style={{ position: 'absolute',
-                      right: 2,
-                      bottom: 5,
-                    }}>
-          <button
-            type="submit"
-            className="btn btn-primary"
-            style={{ fontSize: 16,
-                     height: 30,
-                     width: 30,
-                     borderRadius: 15,
-                     display: 'inline-block',
-                   }}
-            disabled={loading}
-            >
-            <div style={{ display: 'flex',
-                          justifyContent: 'center',
-                        }}>
-              {loading ? <Loading width={16} /> : <FaArrowRight size={16} /> }
-            </div>
-          </button>
-        </div>
+  const handleSubmit = async (e, prompt, url, isActive) => {
+    if (e.shiftKey) {
+      setPrompt(e.target.value + '\n');
+      return;
+    }
+    e.preventDefault();
 
-        <div style={{ width: '100%' }}>
-          <Textarea
-            type="text"
-            style={{ width: '100%',
-                     fontFamily: 'sans-serif',
-                     fontSize: 16,
-                     resize: 'none',
-                     padding: 8,
-                     paddingLeft: 12,
-                     paddingRight: 36,
-                     border: 0,
-                     borderRadius: 18,
-                     minHeight: 80,
-                   }}
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={'Example: "Look for links to articles, and on each article page, find the author, the publication date, and summarize it in 2-10 words."'}
-          />
-        </div>
-      </div>
-    </form>
+    if (loading) return;
+
+    setLoading(true);
+    const page = isActive ? (await getTabData()) : null;
+    const useUrl = isActive ? (await getActiveTab()).url : url;
+    try {
+      const job = await genJob(prompt, useUrl, page);
+      console.log('==== DONE ====');
+      console.log('genjob gave:', job);
+      return onStart(job);
+    } catch (e) {
+      setGlobalError('Error generating job, try again: ' + e);
+      setLoading(false);
+      throw e;
+    }
+  };
+
+  const timeoutRef = useRef(null);
+  const updatePrompt = (e) => {
+    if (e.key == 'Enter' && !e.shiftKey) {
+      handleSubmit(e, prompt, url, true);
+      setKey('masterPrompt', '');
+    } else {
+      setPrompt(e.target.value);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(
+        () => setKey('masterPrompt', e.target.value),
+        100);
+    }
+  }
+
+  const inputNode = (
+    <InputPrompt
+      onSubmit={(e) => handleSubmit(e, prompt, url, true)}
+      onChange={updatePrompt}
+      prompt={prompt}
+      loading={loading}
+    />
   );
 
   const prevNode = (
