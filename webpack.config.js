@@ -8,6 +8,7 @@ var webpack = require('webpack'),
 var { CleanWebpackPlugin } = require('clean-webpack-plugin');
 var ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 var ReactRefreshTypeScript = require('react-refresh-typescript');
+var { sentryWebpackPlugin } = require("@sentry/webpack-plugin");
 
 const ASSET_PATH = process.env.ASSET_PATH || '/';
 
@@ -132,7 +133,13 @@ var options = {
       .map((extension) => '.' + extension)
       .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
   },
+  devtool: "source-map", // Source map generation must be turned on
   plugins: [
+    !isDevelopment && sentryWebpackPlugin({
+      org: "fetchfox",
+      project: "javascript-react",
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }),
     isDevelopment && new ReactRefreshWebpackPlugin(),
     new CleanWebpackPlugin({ verbose: false }),
     new webpack.ProgressPlugin(),

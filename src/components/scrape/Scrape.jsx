@@ -1326,10 +1326,16 @@ export const Scrape = ({ isPopup }) => {
       />
     );
   }
+
+  const err2 = () => {
+    genError1();
+  };
+
   return (
     <div style={{ minHeight: 560 }}>
       <HelpBar />
       <GlobalError />
+      <button onClick={err2}>error</button>
       {/*<div style={{ color: 'white' }}>STEP:{step}</div>*/}
       {body}
     </div>

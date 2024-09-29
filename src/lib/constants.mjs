@@ -7,4 +7,4 @@ export const apiHost = 'https://fetchfoxai.com';
 export const discordUrl = 'https://discord.gg/mM54bwdu59';
 export const gitHubIssuesUrl = 'https://github.com/fetchfox/fetchfox/issues';
 
-export const sentryDsn = 'https://0895ad93f54748ef8b0730f2b443a62a@app.glitchtip.com/8116';
+export const sentryDsn = 'https://a049c0bd8d2be740747cdc18c9a1198f@o4507944397570048.ingest.us.sentry.io/4507944399077376';

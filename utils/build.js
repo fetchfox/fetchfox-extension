@@ -1,7 +1,19 @@
 // Do this as the first thing so that any code reading it knows the right env.
-process.env.BABEL_ENV = 'production';
-process.env.NODE_ENV = 'production';
+require('dotenv').config();
+
+console.log('process.env.SENTRY_AUTH_TOKEN', process.env.SENTRY_AUTH_TOKEN);
+throw 'x';
+
+process.env.BABEL_ENV = process.env.NODE_ENV || 'production';
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 process.env.ASSET_PATH = '/';
+
+if (process.env.NODE_ENV == 'dev') {
+  require('dotenv').config({ path: `.env.dev` });
+} else {
+  require('dotenv').config({ path: `.env.production` });
+}
+
 
 var webpack = require('webpack'),
   path = require('path'),

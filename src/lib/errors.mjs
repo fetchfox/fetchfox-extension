@@ -16,7 +16,7 @@ export const getGlobalError = async () => {
 
 export const initSentry = () => {
   // if (chrome.runtime.getManifest()
-  return;
+  // return;
 
   Sentry.init({
     dsn: sentryDsn,
