@@ -4,18 +4,18 @@ import { setKey, getKey } from './store';
 
 export const setGlobalError = async (message) => {
   return setKey('globalError', { message });
-}
+};
 
 export const clearGlobalError = async () => {
   return setKey('globalError', null);
-}
+};
 
 export const getGlobalError = async () => {
   return getKey('globalError');
-}
+};
 
 export const initSentry = () => {
-  // if (chrome.runtime.getManifest()
+  // if (Browser.runtime.getManifest()
   return;
 
   Sentry.init({
@@ -23,8 +23,9 @@ export const initSentry = () => {
     beforeSend(event, hint) {
       const err = hint.originalException;
       console.error(err);
+      // @ts-ignore
       setGlobalError('We noticed an error: ' + err.message);
       return event;
-    }
+    },
   });
-}
+};

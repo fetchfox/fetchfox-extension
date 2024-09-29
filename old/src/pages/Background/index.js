@@ -521,8 +521,3 @@ const saveConsole = (key, args) => {
     };
   }
 })();
-
-const reportBug = async () => {
-  const messages = (await getKey('consoleMessages')) || [];
-  return sendReport(messages.join('\n'));
-};

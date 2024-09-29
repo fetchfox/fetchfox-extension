@@ -1,5 +1,6 @@
 import { apiHost } from './constants';
 import { getActiveJob } from './store';
+import Browser from 'webextension-polyfill';
 
 export const sendReport = async (logs) => {
   const maxBytes = 900000;
@@ -15,7 +16,7 @@ export const sendReport = async (logs) => {
   }
   const url = apiHost + '/api/report';
   const report = {
-    manifest: chrome.runtime.getManifest(),
+    manifest: Browser.runtime.getManifest(),
     job,
     logs,
   }

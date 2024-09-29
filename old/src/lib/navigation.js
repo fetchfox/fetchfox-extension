@@ -1,9 +1,16 @@
 import { setStatus, setKey } from './store';
-import { getRoundId, isActive, addListener, removeListener } from './controller';
+import {
+  getRoundId,
+  isActive,
+  addListener,
+  removeListener,
+} from './controller';
 import { sleep } from './util';
 import { getTabUrl, closeTabIfExists } from './browser';
 import { apiHost } from './constants';
 import { setGlobalError } from './errors';
+import Browser from 'webextension-polyfill';
+import { sendToBackground } from '@plasmohq/messaging';
 
 const loadSleepTimes = {};
 
@@ -19,8 +26,10 @@ export const getPageData = async (url, options) => {
     const pdfResp = await fetch(url);
     const buf = await pdfResp.arrayBuffer();
     const base64 = btoa(
-      new Uint8Array(buf)
-        .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      new Uint8Array(buf).reduce(
+        (data, byte) => data + String.fromCharCode(byte),
+        ''
+      )
     );
     const body = JSON.stringify({ base64 });
     const resp = await fetch(apiHost + '/api/pdf', { method: 'POST', body });
@@ -36,11 +45,14 @@ export const getPageData = async (url, options) => {
 
   let result;
   for (let i = 0; i < maxPageAttempts; i++) {
-    if (!await isActive(roundId)) return;
+    if (!(await isActive(roundId))) return;
 
     result = await getPageDataIteration(url, options);
     if (!result || result.error) {
-      console.error(`Got page data error ${url} (${i}/${maxPageAttempts}):`, result);
+      console.error(
+        `Got page data error ${url} (${i}/${maxPageAttempts}):`,
+        result
+      );
       await sleep(2000);
       continue;
     } else {
@@ -48,7 +60,7 @@ export const getPageData = async (url, options) => {
     }
   }
   return result?.error ? result : { error: result.error };
-}
+};
 
 const getPageDataIteration = async (url, options) => {
   const { active, onCreate, sleepTime } = options || {};
@@ -60,15 +72,15 @@ const getPageDataIteration = async (url, options) => {
 
   let tab;
   if (active) {
-    tab = await chrome.tabs.create({ url, active: true });
+    tab = await Browser.tabs.create({ url, active: true });
 
     // if (activeTab) {
-    //   tab = await chrome.tabs.update(activeTab.id, { url });
+    //   tab = await Browser.tabs.update(activeTab.id, { url });
     // } else {
-    //   tab = await chrome.tabs.create({ url, active: true });
+    //   tab = await Browser.tabs.create({ url, active: true });
     // }
   } else {
-    tab = await chrome.tabs.create({ url, active: false });
+    tab = await Browser.tabs.create({ url, active: false });
   }
 
   if (onCreate) onCreate(tab);
@@ -78,34 +90,36 @@ const getPageDataIteration = async (url, options) => {
   let error;
 
   const errorLoad = new Promise((ok, bad) => {
-    const listener = chrome.webNavigation.onErrorOccurred.addListener((details) => {
-      if (details.tabId === tab.id) {
-        if (details.frameType == 'outermost_frame') {
-          error = details;
-          ok('error');
+    const listener = chrome.webNavigation.onErrorOccurred.addListener(
+      (details) => {
+        if (details.tabId === tab.id) {
+          if (details.frameType == 'outermost_frame') {
+            error = details;
+            ok('error');
+          }
         }
       }
-    });
+    );
 
     errorHandleStop = () => {
       chrome.webNavigation.onErrorOccurred.removeListener(listener);
       if (!active) closeTabIfExists(tab.id);
-    }
+    };
     addListener(errorHandleStop);
   });
 
   const pageLoad = new Promise((ok, bad) => {
-    const listener = chrome.tabs.onUpdated.addListener((tabId, info) => {
+    const listener = Browser.tabs.onUpdated.addListener((tabId, info) => {
       if (tabId == tab.id && info.status == 'complete') {
-        chrome.tabs.onUpdated.removeListener(listener);
+        Browser.tabs.onUpdated.removeListener(listener);
         ok('ok');
       }
     });
 
     handleStop = () => {
-      chrome.tabs.onUpdated.removeListener(listener);
+      Browser.tabs.onUpdated.removeListener(listener);
       if (!active) closeTabIfExists(tab.id);
-    }
+    };
     addListener(handleStop);
   });
 
@@ -127,7 +141,7 @@ const getPageDataIteration = async (url, options) => {
   }
 
   return results;
-}
+};
 
 export const getTabData = async (tabId, options) => {
   const roundId = await getRoundId();
@@ -143,14 +157,14 @@ export const getTabData = async (tabId, options) => {
 
   const handleStop = () => {
     if (shouldClose) closeTabIfExists(tabId);
-  }
+  };
   addListener(handleStop);
 
   let error;
   let results;
   // Retry a few times, mainly for redirects
   for (let i = 0; i < maxTabAttempts; i++) {
-    if (!await isActive(roundId)) return;
+    if (!(await isActive(roundId))) return;
 
     // get the html + text
     console.log('=> Inject:', tabId, i);
@@ -176,33 +190,35 @@ export const getTabData = async (tabId, options) => {
     console.log('sleep args', tabId, args);
 
     const frames = await new Promise((ok) => {
-      chrome.webNavigation.getAllFrames(
-        { tabId },
-        (frames) => {
-          ok(frames);
-        });
+      chrome.webNavigation.getAllFrames({ tabId }, (frames) => {
+        ok(frames);
+      });
     });
 
     console.log('Got all frames:', tabId, frames);
-    for (const frame of (frames || [])) {
+    for (const frame of frames || []) {
       console.log('- Frame:', tabId, frame.url, frame);
     }
 
     try {
-      results = await chrome.scripting.executeScript({
+      results = await Browser.scripting.executeScript({
         target: { tabId },
         injectImmediately: true,
         args,
         func: injectFunction,
       });
     } catch (e) {
-      console.error(`Got error during injection for ${url} ${tabId}: ${e}, results: ${results}`);
+      console.error(
+        `Got error during injection for ${url} ${tabId}: ${e}, results: ${results}`
+      );
     }
 
     console.log('Results from navigation are:', tabId, results);
     if (results && results[0].result) break;
 
-    console.error(`Got no results, sleep and try again (${i}/${maxTabAttempts}): ${url} ${tabId}`);
+    console.error(
+      `Got no results, sleep and try again (${i}/${maxTabAttempts}): ${url} ${tabId}`
+    );
 
     await sleep(1000);
   }
@@ -227,36 +243,34 @@ export const getTabData = async (tabId, options) => {
   } else {
     return result;
   }
-}
+};
 
 export const getActiveTab = async () => {
   return new Promise((ok) => {
-    chrome.tabs.query(
-      { active: true, currentWindow: true },
-      (tabs) => ok(tabs[0] ? tabs[0] : null));
+    Browser.tabs.query({ active: true, currentWindow: true }, (tabs) =>
+      ok(tabs[0] ? tabs[0] : null)
+    );
   });
-}
+};
 
 export const getTabWithUrl = async (url) => {
   let u = new URL(url);
   // Query without hash
   const noHash = url.replace(u.hash, '');
   return new Promise((ok) => {
-    chrome.tabs.query(
-      { url: noHash },
-      (tabs) => {
-        console.log('lll got tabs after query', url, tabs);
-        // Check for hash match
-        for (let tab of (tabs || [])) {
-          if (tab.url == url) ok(tab);
-        }
-        ok(null);
-      });
+    Browser.tabs.query({ url: noHash }, (tabs) => {
+      console.log('lll got tabs after query', url, tabs);
+      // Check for hash match
+      for (let tab of tabs || []) {
+        if (tab.url == url) ok(tab);
+      }
+      ok(null);
+    });
   });
-}
+};
 
 export const reportSleep = async (url, msec) => {
-  const hostname = (new URL(url)).hostname;
+  const hostname = new URL(url).hostname;
   if (!loadSleepTimes[hostname]) {
     loadSleepTimes[hostname] = {
       times: [],
@@ -268,7 +282,7 @@ export const reportSleep = async (url, msec) => {
   console.log('nav loadSleepTimes', hostname, loadSleepTimes[hostname].times);
 
   setKey('loadSleepTimes', loadSleepTimes);
-}
+};
 
 export const suggestSleep = (url) => {
   if (!url) {
@@ -276,27 +290,27 @@ export const suggestSleep = (url) => {
     return [null, false];
   }
 
-  const hostname = (new URL(url)).hostname;
+  const hostname = new URL(url).hostname;
   const data = loadSleepTimes[hostname];
   if (!data || data.times.length < 2) {
     return [null, true];
   }
   const suggested = Math.min(
-    15*1000,  // Hard cap 15 seconds sleep
-    Math.max(...(data.times)) * 1.1);
+    15 * 1000, // Hard cap 15 seconds sleep
+    Math.max(...data.times) * 1.1
+  );
 
   // Check it less as time goes on, min 5% of the time
-  const shouldCheckLoad = Math.random() < Math.max(
-    0.05,
-    0.80 - data.times.length / 20);
+  const shouldCheckLoad =
+    Math.random() < Math.max(0.05, 0.8 - data.times.length / 20);
 
   return [suggested, shouldCheckLoad];
-}
+};
 
 const injectFunction = async (sleepTime, shouldCheckLoad) => {
   console.log('injected', sleepTime, shouldCheckLoad);
 
-  const defaultSleep = shouldCheckLoad ? 500 : (sleepTime || 1500);
+  const defaultSleep = shouldCheckLoad ? 500 : sleepTime || 1500;
   const dynamicSleep = 2000;
 
   // Max 15 seconds per page
@@ -306,12 +320,13 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       setTimeout(() => {
         console.error(`Injection timeout ${window.location.href}`);
         ok({ error: 'timeout' });
-      }, 20*1000)),
+      }, 20 * 1000)
+    ),
 
     new Promise(async (ok) => {
-      const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-      const start = (new Date()).getTime();
+      const start = new Date().getTime();
 
       // Sleep a for dynamic content
       await sleep(defaultSleep);
@@ -322,17 +337,19 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         if (node.nodeType === Node.TEXT_NODE) {
           t += ' ' + node.textContent.trim();
         } else if (node.nodeType === Node.ELEMENT_NODE) {
-          if (!['script', 'style'].includes(node.nodeName.toLocaleLowerCase())) {
+          if (
+            !['script', 'style'].includes(node.nodeName.toLocaleLowerCase())
+          ) {
             if (node.shadowRoot) {
               t += ' ' + getText(node.shadowRoot);
             }
-            node.childNodes.forEach(child => {
+            node.childNodes.forEach((child) => {
               t += ' ' + getText(child);
             });
           }
         }
         return t;
-      }
+      };
 
       // Via https://chatgpt.com/share/e9a142ab-775d-4f1d-8a84-69f829ffc45c
       const getHtml = (node) => {
@@ -346,9 +363,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         }
 
         for (const tagName of removeTags) {
-          clone
-            .querySelectorAll(tagName)
-            .forEach(el => el.remove());
+          clone.querySelectorAll(tagName).forEach((el) => el.remove());
         }
 
         const removeIfLargeAttributes = [
@@ -356,15 +371,13 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
           ['*', 'class', 100],
         ];
         for (const [tagName, attr, cutoff] of removeIfLargeAttributes) {
-          clone
-            .querySelectorAll(tagName)
-            .forEach(el => {
-              const val = (el.getAttribute(attr) || '')
-              if (val.length > cutoff) {
-                console.log('remove!!', tagName, attr, cutoff, val.length);
-                el.setAttribute(attr, '');
-              }
-            });
+          clone.querySelectorAll(tagName).forEach((el) => {
+            const val = el.getAttribute(attr) || '';
+            if (val.length > cutoff) {
+              console.log('remove!!', tagName, attr, cutoff, val.length);
+              el.setAttribute(attr, '');
+            }
+          });
         }
 
         // Remove hidden elements, LinkedIn puts in a bunch of these
@@ -375,7 +388,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         });
 
         return clone.outerHTML;
-      }
+      };
 
       const url = window.location.href;
       let text = getText(document.body) || '';
@@ -383,46 +396,47 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
 
       const maxDynamicWaits = 1;
       let i;
-      for (i = 0; shouldCheckLoad & i < maxDynamicWaits; i++) {
+      for (i = 0; shouldCheckLoad & (i < maxDynamicWaits); i++) {
         // Check if its loaded
         console.log('== check if loaded ==', { text, html });
-        const resp = await new Promise((ok) => {
-          chrome.runtime.sendMessage(
-            {
-              action: 'checkLoading',
-              text,
-              html,
-            },
-            (resp) => {
-              console.log('checkloading said:', resp);
-              ok(resp);
-            });
+        const resp = await sendToBackground({
+          name: 'checkLoading',
+          body: {
+            text,
+            html,
+          },
         });
 
         if (resp.answer?.status == 'done' || resp.status == 'error') {
           console.log('== checkLoading done! break ==');
 
           if (i > 0) {
-            chrome.runtime.sendMessage({
-              action: 'setStatus',
-              message: 'Loaded dynamic content on ' + url,
+            sendToBackground({
+              name: 'setStatus',
+              body: {
+                message: 'Loaded dynamic content on ' + url,
+              },
             });
           }
           break;
         }
 
         // Page maybe not loaded... let's wait and try again
-        chrome.runtime.sendMessage({
-          action: 'setStatus',
-          message: 'Waiting for dynamic content on ' + url,
+        sendToBackground({
+          name: 'setStatus',
+          body: {
+            message: 'Waiting for dynamic content on ' + url,
+          },
         });
         console.log('== checkLoading waiting ==');
         await sleep(dynamicSleep);
 
         if (i + 1 == maxDynamicWaits) {
-          chrome.runtime.sendMessage({
-            action: 'setStatus',
-            message: 'Stop waiting for dynamic content on ' + url,
+          sendToBackground({
+            name: 'setStatus',
+            body: {
+              message: 'Stop waiting for dynamic content on ' + url,
+            },
           });
         }
 
@@ -430,22 +444,25 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         html = getHtml(document.body) || '';
       }
 
-      const took = (new Date()).getTime() - start;
+      const took = new Date().getTime() - start;
 
       if (shouldCheckLoad) {
-        chrome.runtime.sendMessage({
-          action: 'reportSleep',
-          url,
-          msec: took,
+        sendToBackground({
+          name: 'reportSleep',
+          body: {
+            url,
+            msec: took,
+          },
         });
       }
 
       console.log('check for redir', text);
 
       // Special case Archive.org redirects
-      if (url.indexOf('https://web.archive.org') == 0 &&
-          text.match(/Got an HTTP 30[0-9] response at crawl time/)) {
-
+      if (
+        url.indexOf('https://web.archive.org') == 0 &&
+        text.match(/Got an HTTP 30[0-9] response at crawl time/)
+      ) {
         console.log('archive org redir, find url');
         const m = html.match(/<p class="impatient"><a href="([^"]+)"/);
         if (m) {
@@ -461,7 +478,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       const tags = document.querySelectorAll('a');
       let id = 0;
 
-      const links = Array.from(tags).map(a => ({
+      const links = Array.from(tags).map((a) => ({
         id: id++,
         html: a.outerHTML.substr(0, 1000),
         text: a.innerText.substr(0, 200),
@@ -469,16 +486,16 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       }));
 
       ok({ url, text, html, links });
-    })
+    }),
   ]);
 
   console.log('inject response gave:', x);
 
   return x;
-}
+};
 
 const checkIfPdf = async (url) => {
-  if (url.indexOf(apiHost) == -1 && url.toLowerCase().endsWith(".pdf")) {
+  if (url.indexOf(apiHost) == -1 && url.toLowerCase().endsWith('.pdf')) {
     return true;
   }
 
@@ -489,4 +506,4 @@ const checkIfPdf = async (url) => {
   }
 
   return false;
-}
+};

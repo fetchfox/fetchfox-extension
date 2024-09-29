@@ -1,71 +1,47 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FiCheck, FiEdit2 } from 'react-icons/fi';
+import { useEffect, useRef, useState } from 'react';
 import Textarea from 'react-expanding-textarea';
-import { MdEditSquare } from 'react-icons/md';
-import {
-  IoMdSettings,
-  IoMdAddCircle,
-  IoMdCloseCircle,
-  IoMdArrowBack,
-  IoIosArrowDroprightCircle,
-} from 'react-icons/io';
-import { IoPlayCircle, IoCloseCircle } from 'react-icons/io5';
-import {
-  TbLayoutBottombarExpandFilled,
-  TbLayoutBottombarCollapseFilled,
-  TbFileArrowRight,
-} from 'react-icons/tb';
-import { TiDelete } from 'react-icons/ti';
+import { FaCircleStop, FaFileCsv } from 'react-icons/fa6';
+import { FiPlus } from 'react-icons/fi';
 import { HiMiniPencilSquare } from 'react-icons/hi2';
-import {
-  FaCircleStop,
-  FaFileCsv,
-  FaShareFromSquare,
-  FaCircleMinus,
-  FaPencil,
-} from 'react-icons/fa6';
-import { FaPlus, FaArrowRight } from 'react-icons/fa';
-import { FiPlus, FiMinus, FiMinusCircle } from 'react-icons/fi';
-import { HiArrowsExpand } from 'react-icons/hi';
-import { runJob, runGather, runScrape, sendStopMessage } from '../../lib/job';
-import { genJob, genBlankJob, genJobFromUrls } from '../../lib/gen';
-import { formatNumber, getJobColumn, getJobUrl } from '../../lib/util';
-import { getActiveTab, getTabData } from '../../lib/navigation';
+import { IoMdCloseCircle, IoMdSettings } from 'react-icons/io';
+import { MdEditSquare } from 'react-icons/md';
+import Browser from 'webextension-polyfill';
+import fox from '../../assets/img/fox-transparent.png';
+import { bgColor, mainColor } from '../../lib/constants';
+import { advanceRound, getRoundId, useRoundId } from '../../lib/controller';
+import { downloadJobCsv } from '../../lib/csv';
 import { setGlobalError } from '../../lib/errors';
+import { genBlankJob, genJob, genJobFromUrls } from '../../lib/gen';
+import { runGather, runJob, runScrape, sendStopMessage } from '../../lib/job';
+import { getActiveTab, getTabData } from '../../lib/navigation';
 import {
-  getKey,
-  setKey,
-  setActiveJob,
-  saveJob,
-  setJobField,
-  getJob,
-  setStatus,
   addUrlsToJob,
-  removeUrlsFromJob,
-  setJobResults,
   clearJobResults,
+  getKey,
+  removeUrlsFromJob,
+  saveJob,
+  setActiveJob,
+  setJobField,
+  setJobResults,
+  setKey,
   setScrapeStatus,
 } from '../../lib/store';
-import { useRoundId, advanceRound, getRoundId } from '../../lib/controller';
-import { bgColor, mainColor } from '../../lib/constants';
-import { downloadJobCsv } from '../../lib/csv';
-import { useJobs, useJob, useActiveJob } from '../../state/jobs';
+import { formatNumber, getJobUrl } from '../../lib/util';
+import { useActiveJob, useJobs } from '../../state/jobs';
+import { useOpenAiKey, useQuota, useUsage } from '../../state/openai';
 import { useAutoSleepTime } from '../../state/util';
-import { useOpenAiKey, useUsage, useQuota } from '../../state/openai';
-import { Loading } from '../common/Loading';
-import { Checkbox } from '../common/Checkbox';
-import { Pills } from '../common/Pills';
 import { Error } from '../common/Error';
-import { HelpBar } from '../common/HelpBar';
 import { GlobalError } from '../common/GlobalError';
+import { HelpBar } from '../common/HelpBar';
+import { Loading } from '../common/Loading';
+import { Pills } from '../common/Pills';
+import { FoxSays } from '../fox/FoxSays';
 import { OpenAiKeyEntry } from '../openai/OpenAiKeyEntry';
 import { Pagination } from '../pagination/Pagination';
 import { PerPage } from '../perpage/PerPage';
-import { Share } from '../share/Share';
-import { FoxSays } from '../fox/FoxSays';
-import { Results } from './Results';
 import { InputPrompt } from '../prompt/InputPrompt';
-import fox from '../../assets/img/fox-transparent.png';
+import { Share } from '../share/Share';
+import { Results } from './Results';
 import './Scrape.css';
 
 const blankJob = {
@@ -919,8 +895,8 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
     await setPrompt(prompt);
     await setUrl(url);
     const resp = await handleSubmit(e, prompt, url);
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.update(tabs[0].id, { url });
+    Browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      Browser.tabs.update(tabs[0].id, { url });
     });
 
     if (isPopup) {

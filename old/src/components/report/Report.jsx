@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { FaShareFromSquare } from 'react-icons/fa6';
+import { LuCopy, LuCopyCheck } from 'react-icons/lu';
+import Browser from 'webextension-polyfill';
 import {
   bgColor,
-  errorColor,
   discordUrl,
+  errorColor,
   gitHubIssuesUrl,
 } from '../../lib/constants';
-import { CopyToClipboard } from 'react-copy-to-clipboard';
-import { LuCopy, LuCopyCheck } from 'react-icons/lu';
 import { Loading } from '../common/Loading';
+import { sendToBackground } from '@plasmohq/messaging';
 
 const ReportModal = ({ id, onDone }) => {
   const [copied, setCopied] = useState();
@@ -108,13 +110,14 @@ const ReportModal = ({ id, onDone }) => {
 };
 
 export const Report = () => {
-  const [id, setId] = useState();
+  const [id, setId] = useState(undefined);
 
-  const handleReport = () => {
+  const handleReport = async () => {
     setId('loading');
-    chrome.runtime
-      .sendMessage({ action: 'reportBug' })
-      .then((resp) => setId(resp.id));
+    const resp = await sendToBackground({
+      name: 'reportBug',
+    });
+    setId(resp.id);
   };
 
   return (
