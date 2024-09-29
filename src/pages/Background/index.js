@@ -28,20 +28,29 @@ import icon34 from '../../assets/img/icon-34.png';
 initSentry();
 
 let iconInterval;
-chrome.storage.onChanged.addListener((changes) => {
+let loadingRoundId;
+chrome.storage.onChanged.addListener(async (changes) => {
   if (changes.inFlight) {
+    console.log('eee change to inflight or round id:', changes);
     if (changes.inFlight.newValue == 0) {
+      console.log('eee clearing interval if set:', iconInterval);
       if (iconInterval) {
         clearInterval(iconInterval);
         iconInterval = null;
       }
       chrome.action.setIcon({ path: icon34 });
     } else if (iconInterval == null) {
+      console.log('eee setting interval');
+
       const context = (new OffscreenCanvas(100, 100)).getContext('2d');
       const start = new Date();
       const lines = 16;
       const cW = 40;
       const cH = 40;
+
+      loadingRoundId = await getRoundId();
+
+      console.log('eee loadingRoundId is now', loadingRoundId);
 
       iconInterval = setInterval(() => {
         const rotation = parseInt(((new Date() - start) / 1000) * lines) / lines;
@@ -63,51 +72,53 @@ chrome.storage.onChanged.addListener((changes) => {
         chrome.action.setIcon({ imageData });
         context.restore();
       }, 1000/30);
+
+      console.log('eee iconInterval is now', iconInterval);
     }
   }
 });
 
-chrome.storage.onChanged.addListener((changes) => {
-  if (changes.inFlight) {
-    const canvas = new OffscreenCanvas(100, 100);
-    const context = canvas.getContext('2d');
-    // const context = document.createElement('canvas').getContext('2d');
+// chrome.storage.onChanged.addListener((changes) => {
+//   if (changes.inFlight) {
+//     const canvas = new OffscreenCanvas(100, 100);
+//     const context = canvas.getContext('2d');
+//     // const context = document.createElement('canvas').getContext('2d');
 
-    const start = new Date();
-    const lines = 16;
-    const cW = 40;
-    const cH = 40;
+//     const start = new Date();
+//     const lines = 16;
+//     const cW = 40;
+//     const cH = 40;
 
-    setInterval(() => {
-      const rotation = parseInt(((new Date() - start) / 1000) * lines) / lines;
-      context.save();
-      context.clearRect(0, 0, cW, cH);
-      context.translate(cW / 2, cH / 2);
-      context.rotate(Math.PI * 2 * rotation);
-      for (var i = 0; i < lines; i++) {
-        context.beginPath();
-        context.rotate(Math.PI * 2 / lines);
-        context.moveTo(cW / 10, 0);
-        context.lineTo(cW / 4, 0);
-        context.lineWidth = cW / 30;
-        context.strokeStyle = 'rgba(0, 0, 0,' + i / lines + ')';
-        context.stroke();
-      }
-      const imageData = context.getImageData(10, 10, 19, 19);
-      console.log('set icon', imageData);
-      chrome.action.setIcon({ imageData });
-      context.restore();
-    }, 1000/30);
+//     setInterval(() => {
+//       const rotation = parseInt(((new Date() - start) / 1000) * lines) / lines;
+//       context.save();
+//       context.clearRect(0, 0, cW, cH);
+//       context.translate(cW / 2, cH / 2);
+//       context.rotate(Math.PI * 2 * rotation);
+//       for (var i = 0; i < lines; i++) {
+//         context.beginPath();
+//         context.rotate(Math.PI * 2 / lines);
+//         context.moveTo(cW / 10, 0);
+//         context.lineTo(cW / 4, 0);
+//         context.lineWidth = cW / 30;
+//         context.strokeStyle = 'rgba(0, 0, 0,' + i / lines + ')';
+//         context.stroke();
+//       }
+//       const imageData = context.getImageData(10, 10, 19, 19);
+//       console.log('set icon', imageData);
+//       chrome.action.setIcon({ imageData });
+//       context.restore();
+//     }, 1000/30);
 
-    // chrome.action.setIcon({ path: spinnerOrange });
+//     // chrome.action.setIcon({ path: spinnerOrange });
 
-    // if (changes.inFlight.newValue > 0) {
-    //   chrome.browserAction.setIcon({path: "/assets/spinner.svg"});
-    // } else {
-    //   
-    // }
-  }
-});
+//     // if (changes.inFlight.newValue > 0) {
+//     //   chrome.browserAction.setIcon({path: "/assets/spinner.svg"});
+//     // } else {
+//     //   
+//     // }
+//   }
+// });
 
 chrome.runtime.onMessage.addListener(function (req, sender, sendResponse) {
   if (req.action != 'console') console.log('bg got message:', req);
@@ -295,7 +306,7 @@ const runGather = async (job, tabId, percentFactor) => {
     console.log('gather got page:', page);
 
     if (page?.error) {
-      console.log('Error, skipping' + url, page?.error);
+      console.error('Error, skipping' + url, page?.error);
       await setScrapeStatus(job.id, roundId, [url], 'error');
       continue;
     }

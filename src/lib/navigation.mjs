@@ -3,6 +3,7 @@ import { getRoundId, isActive, addListener, removeListener } from './controller.
 import { sleep } from './util.mjs';
 import { getTabUrl, closeTabIfExists } from './browser.mjs';
 import { apiHost } from './constants.mjs';
+import { setGlobalError } from './errors.mjs';
 
 const loadSleepTimes = {};
 
@@ -46,7 +47,7 @@ export const getPageData = async (url, options) => {
       return result;
     }
   }
-  return result?.error ? result : { error: `Could not get page data for ${url}` };
+  return result?.error ? result : { error: result.error };
 }
 
 const getPageDataIteration = async (url, options) => {
@@ -145,6 +146,7 @@ export const getTabData = async (tabId, options) => {
   }
   addListener(handleStop);
 
+  let error;
   let results;
   // Retry a few times, mainly for redirects
   for (let i = 0; i < maxTabAttempts; i++) {
@@ -155,6 +157,11 @@ export const getTabData = async (tabId, options) => {
     url = await getTabUrl(tabId);
     if (!url) {
       console.warn(`No URL found when trying to get tab data for ${tabId}`);
+    }
+
+    if ((url || '').indexOf('https://chromewebstore.google.com/') != -1) {
+      error = 'Due to Google policy, cannot scrape Chrome Extension Store';
+      break;
     }
 
     console.log('Got sleep time:', sleepTime);
@@ -204,9 +211,9 @@ export const getTabData = async (tabId, options) => {
 
   if (shouldClose) closeTabIfExists(tabId);
 
-  if (!results) {
+  if (!results || error) {
     console.error(`Giving up for ${url}, return error`);
-    return { error: `Could not get tab data for ${url}` };
+    return { error: error || `Could not get tab data for ${url}` };
   }
 
   console.log('Getting result from', results);

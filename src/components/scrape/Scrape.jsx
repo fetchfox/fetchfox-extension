@@ -309,6 +309,7 @@ const UrlsStep = ({ job, isPopup }) => {
   const [currentUrl, setCurrentUrl] = useState('');
   const [pagination, setPagination] = useState();
   const [perPage, setPerPage] = useState();
+  const [error, setError] = useState();
 
   const timeoutRef = useRef(null);
 
@@ -326,6 +327,14 @@ const UrlsStep = ({ job, isPopup }) => {
     on.addListener(update);
     return () => on.removeListener(update);
   }, []);
+
+  useEffect(() => {
+    setError(null);
+    console.log('mmm currentUrl', currentUrl);
+    if (currentUrl.indexOf('https://chromewebstore.google.com') != -1) {
+      setError('Due to Google policy, cannot scrape Chrome Extension Store');
+    }
+  }, [currentUrl]);
 
   useEffect(() => {
     getActiveTab()
@@ -601,6 +610,8 @@ https://www.example.com/page-2
       {action == 'current' && currentNode}
       {action == 'gather' && gatherNode}
       {action == 'manual' && manualNode}
+
+      <Error message={error} />
     </div>
   );
 };
@@ -922,26 +933,28 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
     e.preventDefault();
     setLoading(true);
 
-    console.log('handle submit!! 3');
-
-    const page = isActive ? (await getTabData()) : null;
-    const useUrl = isActive ? (await getActiveTab()).url : url;
-
     try {
+      const useUrl = isActive ? (await getActiveTab()).url : url;
       let job;
-      console.log('manual urls?', manual);
       if (manual) {
         job = await genJobFromUrls(prompt, manualUrls.split('\n'));
       } else {
+        const page = isActive ? (await getTabData()) : null;
+        if (page.error) {
+          setGlobalError(page.error);
+          return;
+        }
         job = await genJob(prompt, useUrl, page);
       }
       console.log('==== GEN JOB DONE ====');
-      console.log('genjob gave:', job);
+      console.log('mmm genjob gave:', job);
       return onStart(job);
     } catch (e) {
+      console.log('mmm caught error in generate job:', e);
       setGlobalError('Error generating job, try again: ' + e);
-      setLoading(false);
       throw e;
+    } finally {
+      setLoading(false);
     }
   };
 

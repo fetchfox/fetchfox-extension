@@ -16,7 +16,7 @@ export const getCache = async (part, keys) => {
   const data = cache[key];
   if (!data) return;
   if (Date.now() > data.expiresAt || data.val == undefined) {
-    cache.del(key);
+    delete cache[key];
     setKey('cache', cache);
     return;
   }
@@ -39,7 +39,7 @@ export const setCache = async (part, keys, val) => {
   for (const k of Object.keys(cache)) {
     const data = cache[k];
     if (Date.now() > data.expiresAt || data.val == undefined) {
-      cache.del(key);
+      delete cache[key];
     }
   }
 
