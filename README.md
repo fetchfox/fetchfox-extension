@@ -1,17 +1,33 @@
-<img src="src/assets/img/icon-128.png" width="64"/>
+This is a [Plasmo extension](https://docs.plasmo.com/) project bootstrapped with [`plasmo init`](https://www.npmjs.com/package/plasmo).
 
-# Hi! I'm FetchFox
+## Getting Started
 
-FetchFox is an AI powered web scraper. It takes the raw text of a website, and uses AI to extract data the user is looking for. It runs as a Chrome Extension, and the user describes the desired data in plain English.
+First, run the development server:
 
-You can use FetchFox to quickly gather data like building a list of leads, assembling research data, or scoping out a market segment.
+```bash
+pnpm dev
+# or
+npm run dev
+```
 
-By scraping raw text with AI, FetchFox lets you circumvent anti-scraping measures on sites like LinkedIn and Facebook. Even the the complicated HTML structures are possible to parse with FetchFox.
+Open your browser and load the appropriate development build. For example, if you are developing for the chrome browser, using manifest v3, use: `build/chrome-mv3-dev`.
 
-# Get the extension
+You can start editing the popup by modifying `popup.tsx`. It should auto-update as you make changes. To add an options page, simply add a `options.tsx` file to the root of the project, with a react component default exported. Likewise to add a content page, add a `content.ts` file to the root of the project, importing some module and do some logic, then reload the extension on your browser.
 
-You can get the extension for free in the [Chrome Extension Store](https://chromewebstore.google.com/detail/fetchfox/meieeikgpmlhmfjmjgciiclgmbcocfnk?authuser=0&hl=en).
+For further guidance, [visit our Documentation](https://docs.plasmo.com/)
 
-# Contributing
+## Making production build
 
-Contributions are welcome! Please be aware the extension is under active constuction. [Join us on Discord](https://discord.gg/mM54bwdu59) for more info.
+Run the following:
+
+```bash
+pnpm build
+# or
+npm run build
+```
+
+This should create a production bundle for your extension, ready to be zipped and published to the stores.
+
+## Submit to the webstores
+
+The easiest way to deploy your Plasmo extension is to use the built-in [bpp](https://bpp.browser.market) GitHub action. Prior to using this action however, make sure to build your extension and upload the first version to the store to establish the basic credentials. Then, simply follow [this setup instruction](https://docs.plasmo.com/framework/workflows/submit) and you should be on your way for automated submission!
