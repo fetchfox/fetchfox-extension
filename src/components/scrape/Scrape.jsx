@@ -1225,12 +1225,14 @@ export const Scrape = ({ isPopup }) => {
   const activeJob = useActiveJob();
 
   useEffect(() => {
+    console.log('what should we do?', openAiPlan, openAiKey, loading);
+
     if (loadingOpenAiKey) return;
+    setLoading(false);
     if (step == 'settings') return;
 
     if (!openAiPlan || (openAiPlan == 'openai' && !openAiKey)) {
       setStep('settings');
-      setLoading(false);
     } else {
       if (!step) setStep('welcome');
     }
@@ -1238,7 +1240,6 @@ export const Scrape = ({ isPopup }) => {
 
   useEffect(() => {
     if (!activeJob) return;
-    // if (step != 'welcome') return;
     if (!loading) return;
 
     console.log('activeJob changed, check if we need to change the step', step);
@@ -1262,7 +1263,7 @@ export const Scrape = ({ isPopup }) => {
         } else {
           // Pick up where we left off
           console.log('not changing step');
-          setStep(await getKey('scrapeStep'));
+          setStep(await getKey('scrapeStep') || 'welcome');
           setLoading(false);
         }
       });
