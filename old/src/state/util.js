@@ -1,6 +1,7 @@
-import { useMemo, useEffect, useState } from 'react';
-import { getKey } from '../lib/store';
-import { useActiveJob } from './jobs';
+import { useStorage } from "@plasmohq/storage/hook";
+import { useEffect, useState } from "react";
+import { getKey } from "../lib/store";
+import { useActiveJob } from "./jobs";
 
 export const useAutoSleepTime = () => {
   const [average, setAverage] = useState();
@@ -8,8 +9,9 @@ export const useAutoSleepTime = () => {
   const [pretty, setPretty] = useState();
   const job = useActiveJob();
 
-  const parse = (loadSleepTimes) => {
-    console.log('autosleep update loadSleepTimes', job, loadSleepTimes);
+  const [loadSleepTimes] = useStorage("loadSleepTimes");
+
+  useEffect(() => {
     const times = [];
     for (const target of job?.results?.targets || []) {
       const hostname = new URL(target.url).hostname;
@@ -18,7 +20,7 @@ export const useAutoSleepTime = () => {
         times.push(...values);
       }
     }
-    console.log('loadSleepTimes got times', times);
+    console.log("loadSleepTimes got times", times);
 
     if (times.length == 0) return;
 
@@ -32,21 +34,7 @@ export const useAutoSleepTime = () => {
     }
     setAverage(times.reduce((acc, v) => acc + v, 0) / times.length);
     setTimes(times);
-  };
-
-  const update = (changes) => {
-    if (changes.loadSleepTimes) {
-      parse(changes.loadSleepTimes.newValue);
-    }
-  };
-
-  useEffect(() => {
-    if (!job?.id) return;
-
-    getKey('loadSleepTimes').then(parse);
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
-  }, [job?.id]);
+  }, [loadSleepTimes]);
 
   return { average, times, pretty };
 };

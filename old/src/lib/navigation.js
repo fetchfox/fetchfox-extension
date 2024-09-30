@@ -1,16 +1,16 @@
-import { setStatus, setKey } from './store';
+import { setStatus, setKey } from "./store";
 import {
   getRoundId,
   isActive,
   addListener,
   removeListener,
-} from './controller';
-import { sleep } from './util';
-import { getTabUrl, closeTabIfExists } from './browser';
-import { apiHost } from './constants';
-import { setGlobalError } from './errors';
-import Browser from 'webextension-polyfill';
-import { sendToBackground } from '@plasmohq/messaging';
+} from "./controller";
+import { sleep } from "./util";
+import { getTabUrl, closeTabIfExists } from "./browser";
+import { apiHost } from "./constants";
+import { setGlobalError } from "./errors";
+import Browser from "webextension-polyfill";
+import { sendToBackground } from "@plasmohq/messaging";
 
 const loadSleepTimes = {};
 
@@ -18,7 +18,7 @@ const maxPageAttempts = 2;
 const maxTabAttempts = 3;
 
 export const getPageData = async (url, options) => {
-  console.log('get page data got options (sleep)', options);
+  console.log("get page data got options (sleep)", options);
 
   const isPdf = await checkIfPdf(url);
   if (isPdf) {
@@ -28,14 +28,14 @@ export const getPageData = async (url, options) => {
     const base64 = btoa(
       new Uint8Array(buf).reduce(
         (data, byte) => data + String.fromCharCode(byte),
-        ''
+        ""
       )
     );
     const body = JSON.stringify({ base64 });
-    const resp = await fetch(apiHost + '/api/pdf', { method: 'POST', body });
+    const resp = await fetch(apiHost + "/api/pdf", { method: "POST", body });
     return {
       url,
-      html: '',
+      html: "",
       text: await resp.text(),
       links: [],
     };
@@ -90,19 +90,19 @@ const getPageDataIteration = async (url, options) => {
   let error;
 
   const errorLoad = new Promise((ok, bad) => {
-    const listener = chrome.webNavigation.onErrorOccurred.addListener(
+    const listener = Browser.webNavigation.onErrorOccurred.addListener(
       (details) => {
         if (details.tabId === tab.id) {
-          if (details.frameType == 'outermost_frame') {
+          if (details.frameType == "outermost_frame") {
             error = details;
-            ok('error');
+            ok("error");
           }
         }
       }
     );
 
     errorHandleStop = () => {
-      chrome.webNavigation.onErrorOccurred.removeListener(listener);
+      Browser.webNavigation.onErrorOccurred.removeListener(listener);
       if (!active) closeTabIfExists(tab.id);
     };
     addListener(errorHandleStop);
@@ -110,9 +110,9 @@ const getPageDataIteration = async (url, options) => {
 
   const pageLoad = new Promise((ok, bad) => {
     const listener = Browser.tabs.onUpdated.addListener((tabId, info) => {
-      if (tabId == tab.id && info.status == 'complete') {
+      if (tabId == tab.id && info.status == "complete") {
         Browser.tabs.onUpdated.removeListener(listener);
-        ok('ok');
+        ok("ok");
       }
     });
 
@@ -124,14 +124,14 @@ const getPageDataIteration = async (url, options) => {
   });
 
   const outcome = await Promise.any([pageLoad, errorLoad]);
-  setStatus('Loaded (' + outcome + ') ' + url);
+  setStatus("Loaded (" + outcome + ") " + url);
   removeListener(handleStop);
 
   let results;
   if (!error) {
     results = await getTabData(tab.id, { shouldClose: true, sleepTime });
     if (!results) {
-      error = 'No tab results';
+      error = "No tab results";
     }
   }
 
@@ -148,7 +148,7 @@ export const getTabData = async (tabId, options) => {
 
   const { shouldClose, sleepTime } = options || {};
 
-  console.log('get tab data got options (sleep)', options);
+  console.log("get tab data got options (sleep)", options);
 
   if (!tabId) {
     tabId = (await getActiveTab()).id;
@@ -167,37 +167,37 @@ export const getTabData = async (tabId, options) => {
     if (!(await isActive(roundId))) return;
 
     // get the html + text
-    console.log('=> Inject:', tabId, i);
+    console.log("=> Inject:", tabId, i);
     url = await getTabUrl(tabId);
     if (!url) {
       console.warn(`No URL found when trying to get tab data for ${tabId}`);
     }
 
-    if ((url || '').indexOf('https://chromewebstore.google.com/') != -1) {
-      error = 'Due to Google policy, cannot scrape Chrome Extension Store';
+    if ((url || "").indexOf("https://chromewebstore.google.com/") != -1) {
+      error = "Due to Google policy, cannot scrape Chrome Extension Store";
       break;
     }
 
-    console.log('Got sleep time:', sleepTime);
+    console.log("Got sleep time:", sleepTime);
     let args;
     if (sleepTime && !isNaN(Number(sleepTime))) {
-      console.log('Using given sleep time:', sleepTime);
+      console.log("Using given sleep time:", sleepTime);
       args = [Number(sleepTime), false];
     } else {
-      console.log('Auto suggesting sleep time');
+      console.log("Auto suggesting sleep time");
       args = suggestSleep(url);
     }
-    console.log('sleep args', tabId, args);
+    console.log("sleep args", tabId, args);
 
     const frames = await new Promise((ok) => {
-      chrome.webNavigation.getAllFrames({ tabId }, (frames) => {
+      Browser.webNavigation.getAllFrames({ tabId }, (frames) => {
         ok(frames);
       });
     });
 
-    console.log('Got all frames:', tabId, frames);
+    console.log("Got all frames:", tabId, frames);
     for (const frame of frames || []) {
-      console.log('- Frame:', tabId, frame.url, frame);
+      console.log("- Frame:", tabId, frame.url, frame);
     }
 
     try {
@@ -213,7 +213,7 @@ export const getTabData = async (tabId, options) => {
       );
     }
 
-    console.log('Results from navigation are:', tabId, results);
+    console.log("Results from navigation are:", tabId, results);
     if (results && results[0].result) break;
 
     console.error(
@@ -232,13 +232,13 @@ export const getTabData = async (tabId, options) => {
     return { error: error || `Could not get tab data for ${url}` };
   }
 
-  console.log('Getting result from', results);
+  console.log("Getting result from", results);
 
   const result = results[0].result;
-  console.log('Success', result);
+  console.log("Success", result);
 
   if (result.redir) {
-    console.log('Handle redir', result.redir);
+    console.log("Handle redir", result.redir);
     return getPageData(result.redir, options);
   } else {
     return result;
@@ -256,10 +256,10 @@ export const getActiveTab = async () => {
 export const getTabWithUrl = async (url) => {
   let u = new URL(url);
   // Query without hash
-  const noHash = url.replace(u.hash, '');
+  const noHash = url.replace(u.hash, "");
   return new Promise((ok) => {
     Browser.tabs.query({ url: noHash }, (tabs) => {
-      console.log('lll got tabs after query', url, tabs);
+      console.log("lll got tabs after query", url, tabs);
       // Check for hash match
       for (let tab of tabs || []) {
         if (tab.url == url) ok(tab);
@@ -279,9 +279,9 @@ export const reportSleep = async (url, msec) => {
   const t = loadSleepTimes[hostname].times;
   t.unshift(msec);
   loadSleepTimes[hostname].times = t.slice(0, 10);
-  console.log('nav loadSleepTimes', hostname, loadSleepTimes[hostname].times);
+  console.log("nav loadSleepTimes", hostname, loadSleepTimes[hostname].times);
 
-  setKey('loadSleepTimes', loadSleepTimes);
+  setKey("loadSleepTimes", loadSleepTimes);
 };
 
 export const suggestSleep = (url) => {
@@ -308,7 +308,7 @@ export const suggestSleep = (url) => {
 };
 
 const injectFunction = async (sleepTime, shouldCheckLoad) => {
-  console.log('injected', sleepTime, shouldCheckLoad);
+  console.log("injected", sleepTime, shouldCheckLoad);
 
   const defaultSleep = shouldCheckLoad ? 500 : sleepTime || 1500;
   const dynamicSleep = 2000;
@@ -319,7 +319,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
     new Promise((ok) =>
       setTimeout(() => {
         console.error(`Injection timeout ${window.location.href}`);
-        ok({ error: 'timeout' });
+        ok({ error: "timeout" });
       }, 20 * 1000)
     ),
 
@@ -333,18 +333,18 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
 
       // via https://chatgpt.com/share/ef8bcaec-6fb1-478b-a074-1ae22c908ae2
       const getText = (node) => {
-        let t = '';
+        let t = "";
         if (node.nodeType === Node.TEXT_NODE) {
-          t += ' ' + node.textContent.trim();
+          t += " " + node.textContent.trim();
         } else if (node.nodeType === Node.ELEMENT_NODE) {
           if (
-            !['script', 'style'].includes(node.nodeName.toLocaleLowerCase())
+            !["script", "style"].includes(node.nodeName.toLocaleLowerCase())
           ) {
             if (node.shadowRoot) {
-              t += ' ' + getText(node.shadowRoot);
+              t += " " + getText(node.shadowRoot);
             }
             node.childNodes.forEach((child) => {
-              t += ' ' + getText(child);
+              t += " " + getText(child);
             });
           }
         }
@@ -355,11 +355,11 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       const getHtml = (node) => {
         let clone = node.cloneNode(true);
 
-        const removeTags = ['style', 'path', 'svg'];
+        const removeTags = ["style", "path", "svg"];
         // Remove LinkedIn junk
         // TODO: more resilient solution
-        if (url.indexOf('https://www.linkedin.com') != -1) {
-          removeTags.push('code');
+        if (url.indexOf("https://www.linkedin.com") != -1) {
+          removeTags.push("code");
         }
 
         for (const tagName of removeTags) {
@@ -367,54 +367,54 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         }
 
         const removeIfLargeAttributes = [
-          ['img', 'src', 1000],
-          ['*', 'class', 100],
+          ["img", "src", 1000],
+          ["*", "class", 100],
         ];
         for (const [tagName, attr, cutoff] of removeIfLargeAttributes) {
           clone.querySelectorAll(tagName).forEach((el) => {
-            const val = el.getAttribute(attr) || '';
+            const val = el.getAttribute(attr) || "";
             if (val.length > cutoff) {
-              console.log('remove!!', tagName, attr, cutoff, val.length);
-              el.setAttribute(attr, '');
+              console.log("remove!!", tagName, attr, cutoff, val.length);
+              el.setAttribute(attr, "");
             }
           });
         }
 
         // Remove hidden elements, LinkedIn puts in a bunch of these
-        const els = clone.querySelectorAll('*');
+        const els = clone.querySelectorAll("*");
         els.forEach((el) => {
           const style = window.getComputedStyle(el);
-          if (style.display == 'none') el.remove();
+          if (style.display == "none") el.remove();
         });
 
         return clone.outerHTML;
       };
 
       const url = window.location.href;
-      let text = getText(document.body) || '';
-      let html = getHtml(document.body) || '';
+      let text = getText(document.body) || "";
+      let html = getHtml(document.body) || "";
 
       const maxDynamicWaits = 1;
       let i;
       for (i = 0; shouldCheckLoad & (i < maxDynamicWaits); i++) {
         // Check if its loaded
-        console.log('== check if loaded ==', { text, html });
+        console.log("== check if loaded ==", { text, html });
         const resp = await sendToBackground({
-          name: 'checkLoading',
+          name: "checkLoading",
           body: {
             text,
             html,
           },
         });
 
-        if (resp.answer?.status == 'done' || resp.status == 'error') {
-          console.log('== checkLoading done! break ==');
+        if (resp.answer?.status == "done" || resp.status == "error") {
+          console.log("== checkLoading done! break ==");
 
           if (i > 0) {
             sendToBackground({
-              name: 'setStatus',
+              name: "setStatus",
               body: {
-                message: 'Loaded dynamic content on ' + url,
+                message: "Loaded dynamic content on " + url,
               },
             });
           }
@@ -423,32 +423,32 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
 
         // Page maybe not loaded... let's wait and try again
         sendToBackground({
-          name: 'setStatus',
+          name: "setStatus",
           body: {
-            message: 'Waiting for dynamic content on ' + url,
+            message: "Waiting for dynamic content on " + url,
           },
         });
-        console.log('== checkLoading waiting ==');
+        console.log("== checkLoading waiting ==");
         await sleep(dynamicSleep);
 
         if (i + 1 == maxDynamicWaits) {
           sendToBackground({
-            name: 'setStatus',
+            name: "setStatus",
             body: {
-              message: 'Stop waiting for dynamic content on ' + url,
+              message: "Stop waiting for dynamic content on " + url,
             },
           });
         }
 
-        text = getText(document.body) || '';
-        html = getHtml(document.body) || '';
+        text = getText(document.body) || "";
+        html = getHtml(document.body) || "";
       }
 
       const took = new Date().getTime() - start;
 
       if (shouldCheckLoad) {
         sendToBackground({
-          name: 'reportSleep',
+          name: "reportSleep",
           body: {
             url,
             msec: took,
@@ -456,26 +456,26 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         });
       }
 
-      console.log('check for redir', text);
+      console.log("check for redir", text);
 
       // Special case Archive.org redirects
       if (
-        url.indexOf('https://web.archive.org') == 0 &&
+        url.indexOf("https://web.archive.org") == 0 &&
         text.match(/Got an HTTP 30[0-9] response at crawl time/)
       ) {
-        console.log('archive org redir, find url');
+        console.log("archive org redir, find url");
         const m = html.match(/<p class="impatient"><a href="([^"]+)"/);
         if (m) {
           let redir = m[1];
-          if (redir[0] == '/') {
-            redir = 'https://web.archive.org' + redir;
+          if (redir[0] == "/") {
+            redir = "https://web.archive.org" + redir;
           }
-          console.log('archive org redir', redir);
+          console.log("archive org redir", redir);
           return { redir };
         }
       }
 
-      const tags = document.querySelectorAll('a');
+      const tags = document.querySelectorAll("a");
       let id = 0;
 
       const links = Array.from(tags).map((a) => ({
@@ -489,19 +489,19 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
     }),
   ]);
 
-  console.log('inject response gave:', x);
+  console.log("inject response gave:", x);
 
   return x;
 };
 
 const checkIfPdf = async (url) => {
-  if (url.indexOf(apiHost) == -1 && url.toLowerCase().endsWith('.pdf')) {
+  if (url.indexOf(apiHost) == -1 && url.toLowerCase().endsWith(".pdf")) {
     return true;
   }
 
-  const resp = await fetch(url, { method: 'HEAD' });
-  const type = resp.headers.get('Content-Type');
-  if (('' + type).toLowerCase().includes('application/pdf')) {
+  const resp = await fetch(url, { method: "HEAD" });
+  const type = resp.headers.get("Content-Type");
+  if (("" + type).toLowerCase().includes("application/pdf")) {
     return true;
   }
 

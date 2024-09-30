@@ -1,66 +1,45 @@
-import { useEffect, useState } from 'react';
-import { stopActiveJob } from './store';
+import { useStorage } from "@plasmohq/storage/hook";
+import { useEffect, useState } from "react";
+import { storage } from "~lib/storage";
+import { setKey, stopActiveJob, updateKey } from "./store";
+import { r0 } from "radash";
 
 let listeners = [];
 
 export const useRoundId = () => {
-  const [roundId, setRoundId] = useState(null);
-
-  const update = (changes) => {
-    if (changes.roundId) {
-      setRoundId(changes.roundId.newValue);
-    }
-  };
-
-  useEffect(() => {
-    getRoundId().then(setRoundId);
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
-  }, []);
-
+  const [roundId] = useStorage("roundId");
   return roundId;
-}
+};
 
 export const getRoundId = async () => {
-  return chrome.storage.local.get('roundId').
-    then(r => {
-      return r['roundId'] || 1;
-    });
-}
+  return (await storage.get("roundId")) || 1;
+};
 
 export const isActive = async (r) => {
-  return r == await getRoundId();
-}
+  return r == (await getRoundId());
+};
 
 export const addListener = async (f) => {
-  if (listeners.includes(f)) {
-    return;
+  if (!listeners.includes(f)) {
+    listeners.push(f);
   }
-  listeners.push(f);
-}
+};
 
 export const removeListener = async (f) => {
   const index = listeners.indexOf(f);
   if (index == -1) return;
   listeners.splice(index, 1);
-}
+};
 
 export const runStopListeners = () => {
-  listeners.map(l => { l() });
+  listeners.forEach((l) => l());
   listeners = [];
-}
+};
 
 export const advanceRound = async () => {
-  const roundId = await getRoundId();
-
-  const changes = {
-    inFlight: 0,
-    roundId: roundId + 1,
-  };
-
-  await chrome.storage.local.set(changes);
+  await setKey("inFlight", 0);
+  await updateKey("roundId", (old) => (old || 0) + 1);
 
   runStopListeners();
-
   return stopActiveJob();
-}
+};

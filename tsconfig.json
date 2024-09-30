@@ -9,7 +9,6 @@
     "./**/*.tsx"
   ],
   "compilerOptions": {
-    "checkJs": true,
     "paths": {
       "~*": [
         "./*"
@@ -18,5 +17,10 @@
     "target": "es2021",
     "baseUrl": ".",
     "lib": ["es2021", "dom"],
+    "checkJs": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "strict": false
   }
 }

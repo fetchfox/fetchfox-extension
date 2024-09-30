@@ -1,19 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import Textarea from 'react-expanding-textarea';
-import { FaCircleStop, FaFileCsv } from 'react-icons/fa6';
-import { FiPlus } from 'react-icons/fi';
-import { HiMiniPencilSquare } from 'react-icons/hi2';
-import { IoMdCloseCircle, IoMdSettings } from 'react-icons/io';
-import { MdEditSquare } from 'react-icons/md';
-import Browser from 'webextension-polyfill';
-import fox from '../../assets/img/fox-transparent.png';
-import { bgColor, mainColor } from '../../lib/constants';
-import { advanceRound, getRoundId, useRoundId } from '../../lib/controller';
-import { downloadJobCsv } from '../../lib/csv';
-import { setGlobalError } from '../../lib/errors';
-import { genBlankJob, genJob, genJobFromUrls } from '../../lib/gen';
-import { runGather, runJob, runScrape, sendStopMessage } from '../../lib/job';
-import { getActiveTab, getTabData } from '../../lib/navigation';
+import { useEffect, useRef, useState } from "react";
+import Textarea from "react-expanding-textarea";
+import { FaCircleStop, FaFileCsv } from "react-icons/fa6";
+import { FiPlus } from "react-icons/fi";
+import { HiMiniPencilSquare } from "react-icons/hi2";
+import { IoMdCloseCircle, IoMdSettings } from "react-icons/io";
+import { MdEditSquare } from "react-icons/md";
+import Browser from "webextension-polyfill";
+import fox from "data-base64:~assets/fox-transparent.png";
+import { bgColor, mainColor } from "../../lib/constants";
+import { advanceRound, getRoundId, useRoundId } from "../../lib/controller";
+import { downloadJobCsv } from "../../lib/csv";
+import { setGlobalError } from "../../lib/errors";
+import { genBlankJob, genJob, genJobFromUrls } from "../../lib/gen";
+import { runGather, runJob, runScrape, sendStopMessage } from "../../lib/job";
+import { getActiveTab, getTabData } from "../../lib/navigation";
 import {
   addUrlsToJob,
   clearJobResults,
@@ -25,68 +25,51 @@ import {
   setJobResults,
   setKey,
   setScrapeStatus,
-} from '../../lib/store';
-import { formatNumber, getJobUrl } from '../../lib/util';
-import { useActiveJob, useJobs } from '../../state/jobs';
-import { useOpenAiKey, useQuota, useUsage } from '../../state/openai';
-import { useAutoSleepTime } from '../../state/util';
-import { Error } from '../common/Error';
-import { GlobalError } from '../common/GlobalError';
-import { HelpBar } from '../common/HelpBar';
-import { Loading } from '../common/Loading';
-import { Pills } from '../common/Pills';
-import { FoxSays } from '../fox/FoxSays';
-import { OpenAiKeyEntry } from '../openai/OpenAiKeyEntry';
-import { Pagination } from '../pagination/Pagination';
-import { PerPage } from '../perpage/PerPage';
-import { InputPrompt } from '../prompt/InputPrompt';
-import { Share } from '../share/Share';
-import { Results } from './Results';
-import './Scrape.css';
-
-const blankJob = {
-  id: 'draft',
-  urls: {
-    action: 'gather',
-    url: '',
-    question: '',
-    list: [],
-  },
-  scrape: {
-    action: 'scrape',
-    questions: [''],
-  },
-};
+} from "../../lib/store";
+import { formatNumber, getJobUrl } from "../../lib/util";
+import { useActiveJob, useJobs } from "../../state/jobs";
+import { useOpenAiKey, useQuota, useUsage } from "../../state/openai";
+import { useAutoSleepTime } from "../../state/util";
+import { Error } from "../common/Error";
+import { GlobalError } from "../common/GlobalError";
+import { HelpBar } from "../common/HelpBar";
+import { Loading } from "../common/Loading";
+import { Pills } from "../common/Pills";
+import { FoxSays } from "../fox/FoxSays";
+import { OpenAiKeyEntry } from "../openai/OpenAiKeyEntry";
+import { Pagination } from "../pagination/Pagination";
+import { PerPage } from "../perpage/PerPage";
+import { InputPrompt } from "../prompt/InputPrompt";
+import { Share } from "../share/Share";
+import { Results } from "./Results";
+import "./Scrape.css";
+import { useStorage } from "@plasmohq/storage/hook";
 
 const mainStyle = {
   padding: 10,
   paddingBottom: 100,
-  color: 'white',
-  width: '100%',
+  color: "white",
+  width: "100%",
 };
 
 const stepStyle = {
   borderRadius: 5,
   padding: 10,
-  background: '#fff2',
+  background: "#fff2",
   marginBottom: 20,
 };
 
 const stepHeaderStyle = {
   fontSize: 18,
-  fontWeight: 'bold',
+  fontWeight: "bold",
   marginBottom: 10,
-};
-
-const smallButtonStyle = {
-  fontSize: 12,
 };
 
 const maybeOpenPanel = async (job) => {
   let shouldOpen = true;
 
   if (!(job.scrape?.concurrency < 0)) shouldOpen = false;
-  if (job.urls?.action == 'current') shouldOpen = false;
+  if (job.urls?.action == "current") shouldOpen = false;
   if (job.urls?.pagination?.follow) shouldOpen = true;
 
   if (shouldOpen) openPanel();
@@ -94,7 +77,7 @@ const maybeOpenPanel = async (job) => {
 
 const openPanel = async () => {
   const activeTab = await getActiveTab();
-  chrome.sidePanel.open({ windowId: activeTab.windowId }, () => {
+  Browser.sidePanel.open({ windowId: activeTab.windowId }, () => {
     // TODO: remove need for setTimeout
     setTimeout(() => {
       window.close();
@@ -103,88 +86,56 @@ const openPanel = async () => {
 };
 
 const StatusBar = ({ onRun }) => {
-  const [message, setMessage] = useState('');
-  const [percent, setPercent] = useState();
-  const [completion, setCompletion] = useState();
-  const [tpm, setTpm] = useState();
-  const [inFlight, setInFlight] = useState(0);
   const [loading, setLoading] = useState();
-  const [busy, setBusy] = useState();
-  const [statusHeight, setStatusHeight] = useState(0);
-  const roundId = useRoundId(0);
   const usage = useUsage();
 
-  console.log('sb icon?', chrome.action);
+  console.log("Status bar usage:", usage);
 
-  useEffect(() => {
-    setBusy(loading || inFlight != 0);
-  }, [loading, inFlight]);
+  const [status] = useStorage("status");
+  const [percent] = useStorage("percent");
+  const [completion] = useStorage("completion");
+  const [tpm] = useStorage("tpm");
+  const [inFlight] = useStorage("inFlight");
 
-  console.log('Status bar usage:', usage);
-
-  useEffect(() => {
-    chrome.storage.local.get().then((st) => {
-      if (st.status) setMessage(st.status.message);
-      if (st.percent) setPercent(st.percent);
-      if (st.completion) setCompletion(st.completion);
-      if (st.tpm) setTpm(st.tpm);
-      if (st.inFlight) setInFlight(st.inFlight);
-    });
-  }, []);
-
-  useEffect(() => {
-    const handle = (changes, area) => {
-      if (changes.status) setMessage(changes.status.newValue.message);
-      if (changes.percent) setPercent(changes.percent.newValue);
-      if (changes.completion) setCompletion(changes.completion.newValue);
-      if (changes.tpm) setTpm(changes.tpm.newValue);
-      if (changes.inFlight) setInFlight(changes.inFlight.newValue);
-    };
-
-    chrome.storage.onChanged.addListener(handle);
-    return () => chrome.storage.onChanged.removeListener(handle);
-  });
-
-  const handleRun = () => {
-    onRun();
-  };
+  const message = status?.message ?? "";
+  const busy = loading || inFlight !== 0;
 
   const size = 28;
 
   const buttonNode = (
     <div>
       <button
-        className={'btn btn-lg btn-primary'}
-        style={{ width: '100%' }}
-        onClick={() => handleRun()}
+        className={"btn btn-lg btn-primary"}
+        style={{ width: "100%" }}
+        onClick={onRun}
       >
         Run Scrape
       </button>
     </div>
   );
 
-  const calcWidth = 'calc(100% - ' + (2 * size + 16) + 'px)';
+  const calcWidth = "calc(100% - " + (2 * size + 16) + "px)";
 
   const loadingNode = (
     <div
       style={{
         height: size + 20,
-        padding: '2px 0',
-        display: 'flex',
+        padding: "2px 0",
+        display: "flex",
         gap: 5,
-        alignItems: 'center',
-        overflow: 'hidden',
-        position: 'relative',
+        alignItems: "center",
+        overflow: "hidden",
+        position: "relative",
       }}
     >
-      <div style={{ width: size + 2, paddingLeft: 2, textAlign: 'right' }}>
+      <div style={{ width: size + 2, paddingLeft: 2, textAlign: "right" }}>
         {busy ? <Loading width={size} /> : null}
       </div>
 
       {busy && (
         <div style={{ width: size }}>
           <a
-            style={{ color: 'white' }}
+            style={{ color: "white" }}
             href="#"
             onClick={(e) => {
               e.preventDefault();
@@ -203,15 +154,15 @@ const StatusBar = ({ onRun }) => {
             width: calcWidth,
             height: 18,
             bottom: 10,
-            position: 'absolute',
+            position: "absolute",
             marginLeft: size * 2 + 16,
-            background: '#fff3',
+            background: "#fff3",
             borderRadius: 4,
           }}
         >
           <div
             style={{
-              width: Math.floor(100 * percent) + '%',
+              width: Math.floor(100 * percent) + "%",
               height: 18,
               background: mainColor,
               borderRadius: 4,
@@ -222,10 +173,10 @@ const StatusBar = ({ onRun }) => {
 
       <div
         style={{
-          position: 'absolute',
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
+          position: "absolute",
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
           width: calcWidth,
           marginLeft: size * 2 + 16,
           fontSize: 10,
@@ -233,7 +184,7 @@ const StatusBar = ({ onRun }) => {
         }}
       >
         <div>
-          {percent && Math.round(100 * percent) + '%'}
+          {percent && Math.round(100 * percent) + "%"}
           {percent && !!completion?.done && !!completion?.total && (
             <span> ({`${completion.done}/${completion.total}`})</span>
           )}
@@ -241,8 +192,8 @@ const StatusBar = ({ onRun }) => {
         <div>
           {tpm && (
             <span>
-              {' '}
-              {formatNumber(tpm, true)} tpm,{' '}
+              {" "}
+              {formatNumber(tpm, true)} tpm,{" "}
               {formatNumber(usage.total || 0, true)}
             </span>
           )}
@@ -251,17 +202,17 @@ const StatusBar = ({ onRun }) => {
 
       <div
         style={{
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
           zIndex: 2,
-          width: 'calc(100% - 10px)',
+          width: "calc(100% - 10px)",
           paddingRight: 30,
           marginLeft: 8,
           marginTop: 8,
         }}
       >
-        {inFlight > 0 ? ' ' + message : ''}
+        {inFlight > 0 ? " " + message : ""}
       </div>
     </div>
   );
@@ -269,8 +220,8 @@ const StatusBar = ({ onRun }) => {
   return (
     <div
       style={{
-        width: '100%',
-        position: 'fixed',
+        width: "100%",
+        position: "fixed",
         background: bgColor,
         left: 0,
         bottom: 0,
@@ -292,11 +243,11 @@ const UrlsStep = ({ job, isPopup }) => {
   const [list, setList] = useState([]);
   const [question, setQuestion] = useState(null);
   const [shouldClear, setShouldClear] = useState(false);
-  const [manualUrls, setManualUrls] = useState('');
+  const [manualUrls, setManualUrls] = useState("");
   const [manualError, setManualError] = useState();
   const [showCurrentButton, setShowCurrentButton] = useState(false);
-  const [tab, setTab] = useState('gather');
-  const [currentUrl, setCurrentUrl] = useState('');
+  const [tab, setTab] = useState("gather");
+  const [currentUrl, setCurrentUrl] = useState("");
   const [pagination, setPagination] = useState();
   const [perPage, setPerPage] = useState();
   const [error, setError] = useState();
@@ -313,16 +264,16 @@ const UrlsStep = ({ job, isPopup }) => {
 
     update();
 
-    const on = chrome.webNavigation.onHistoryStateUpdated;
+    const on = Browser.webNavigation.onHistoryStateUpdated;
     on.addListener(update);
     return () => on.removeListener(update);
   }, []);
 
   useEffect(() => {
     setError(null);
-    console.log('mmm currentUrl', currentUrl);
-    if (currentUrl.indexOf('https://chromewebstore.google.com') != -1) {
-      setError('Due to Google policy, cannot scrape Chrome Extension Store');
+    console.log("mmm currentUrl", currentUrl);
+    if (currentUrl.indexOf("https://chromewebstore.google.com") != -1) {
+      setError("Due to Google policy, cannot scrape Chrome Extension Store");
     }
   }, [currentUrl]);
 
@@ -331,11 +282,11 @@ const UrlsStep = ({ job, isPopup }) => {
       setCurrentUrl(activeTab.url);
       setTab(action);
 
-      if (action == 'gather') {
-        const exists = !(url || '').split('\n').includes(activeTab.url);
+      if (action == "gather") {
+        const exists = !(url || "").split("\n").includes(activeTab.url);
         setShowCurrentButton(exists);
-      } else if (action == 'manual') {
-        const exists = !(manualUrls || '').split('\n').includes(activeTab.url);
+      } else if (action == "manual") {
+        const exists = !(manualUrls || "").split("\n").includes(activeTab.url);
         setShowCurrentButton(exists);
       }
     });
@@ -344,7 +295,7 @@ const UrlsStep = ({ job, isPopup }) => {
   const updateTabAndAction = (t) => {
     setTab(t);
     updateAction(t);
-    updatePerPage('guess');
+    updatePerPage("guess");
   };
 
   const numResults = (job?.results?.targets || []).length;
@@ -356,33 +307,33 @@ const UrlsStep = ({ job, isPopup }) => {
     const updated = JSON.parse(JSON.stringify(job.urls));
     updated[field] = val;
     timeoutRef.current = setTimeout(
-      () => setJobField(job.id, 'urls', updated),
+      () => setJobField(job.id, "urls", updated),
       100
     );
   };
 
-  const updateAction = (val) => updateJob('action', val, setAction);
-  const updateUrl = (val) => updateJob('url', val, setUrl);
-  const updateManualUrls = (val) => updateJob('manualUrls', val, setManualUrls);
-  const updateList = (val) => updateJob('list', val, setList);
-  const updateQuestion = (val) => updateJob('question', val, setQuestion);
+  const updateAction = (val) => updateJob("action", val, setAction);
+  const updateUrl = (val) => updateJob("url", val, setUrl);
+  const updateManualUrls = (val) => updateJob("manualUrls", val, setManualUrls);
+  const updateList = (val) => updateJob("list", val, setList);
+  const updateQuestion = (val) => updateJob("question", val, setQuestion);
   const updateShouldClear = (val) =>
-    updateJob('shouldClear', val, setShouldClear);
-  const updatePagination = (f) => updateJob('pagination', f, setPagination);
-  const updatePerPage = (f) => updateJob('perPage', f, setPerPage);
+    updateJob("shouldClear", val, setShouldClear);
+  const updatePagination = (f) => updateJob("pagination", f, setPagination);
+  const updatePerPage = (f) => updateJob("perPage", f, setPerPage);
 
   const cleanManualUrls = (x) =>
     x
-      .split('\n')
+      .split("\n")
       .map((x) => x.trim())
-      .filter((x) => !!x && x != '');
+      .filter((x) => !!x && x != "");
 
   const checkManualUrls = (val, skipShort) => {
     setManualError();
     for (const url of cleanManualUrls(val)) {
       if (skipShort && url.length < 8) continue;
-      if (url.indexOf('http://') != 0 && url.indexOf('https://') != 0) {
-        setManualError('URLs must start with http:// or https://');
+      if (url.indexOf("http://") != 0 && url.indexOf("https://") != 0) {
+        setManualError("URLs must start with http:// or https://");
         return false;
       }
     }
@@ -392,7 +343,7 @@ const UrlsStep = ({ job, isPopup }) => {
   useEffect(() => {
     if (!job) return;
 
-    console.log('use effect updating from', job);
+    console.log("use effect updating from", job);
 
     updateAction(job.urls?.action);
     updateUrl(job.urls?.url);
@@ -409,10 +360,10 @@ const UrlsStep = ({ job, isPopup }) => {
   const handleCurrent = async () => {
     const activeTab = await getActiveTab();
     if (activeTab) {
-      if (action == 'gather') {
+      if (action == "gather") {
         // updateUrl(activeTab.url + '\n' + url);
         updateUrl(activeTab.url);
-      } else if (action == 'manual') {
+      } else if (action == "manual") {
         // updateManualUrls(activeTab.url + '\n' + manualUrls);
         updateManualUrls(activeTab.url);
       }
@@ -426,17 +377,17 @@ const UrlsStep = ({ job, isPopup }) => {
       await maybeOpenPanel(job);
     }
 
-    if (action == 'gather') {
+    if (action == "gather") {
       runGather(job);
       if (job.urls.shouldClear) {
         updateShouldClear(false);
       }
-    } else if (action == 'manual') {
+    } else if (action == "manual") {
       if (!checkManualUrls(manualUrls, false)) return;
       const add = cleanManualUrls(manualUrls);
-      console.log('add these urls manually:', add);
+      console.log("add these urls manually:", add);
       addUrlsToJob(job.id, add);
-      setManualUrls('');
+      setManualUrls("");
     }
   };
 
@@ -445,15 +396,15 @@ const UrlsStep = ({ job, isPopup }) => {
   const questionNode = (
     <div>
       <p>
-        What kinds of {action == 'gather' ? 'links' : 'items'} should we look
+        What kinds of {action == "gather" ? "links" : "items"} should we look
         for?
       </p>
       <Textarea
         style={{
-          width: '100%',
-          fontFamily: 'sans-serif',
-          resize: 'none',
-          padding: '4px 8px',
+          width: "100%",
+          fontFamily: "sans-serif",
+          resize: "none",
+          padding: "4px 8px",
           border: 0,
           borderRadius: 2,
         }}
@@ -466,16 +417,16 @@ const UrlsStep = ({ job, isPopup }) => {
 
   const currentButtonNode = (
     <div
-      style={{ position: 'absolute', right: 3, top: 7, background: 'white' }}
+      style={{ position: "absolute", right: 3, top: 7, background: "white" }}
     >
       <button
         className="btn btn-gray"
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '2px 8px',
-          color: 'white',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "2px 8px",
+          color: "white",
         }}
         onClick={handleCurrent}
       >
@@ -487,7 +438,7 @@ const UrlsStep = ({ job, isPopup }) => {
   const gatherNode = (
     <div>
       <p>Find links on current page</p>
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: "relative" }}>
         {/*
         {showCurrentButton && currentButtonNode}
         <input
@@ -507,13 +458,13 @@ const UrlsStep = ({ job, isPopup }) => {
 
         <div
           style={{
-            background: '#fff3',
-            padding: '8px',
-            margin: '10px 0',
+            background: "#fff3",
+            padding: "8px",
+            margin: "10px 0",
             borderRadius: 4,
             fontSize: 13,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {url}
@@ -525,8 +476,8 @@ const UrlsStep = ({ job, isPopup }) => {
 
       <div style={{ marginTop: 10 }}>
         <button
-          className={'btn btn-gray btn-md'}
-          style={{ width: '100%' }}
+          className={"btn btn-gray btn-md"}
+          style={{ width: "100%" }}
           onClick={handleClick}
         >
           Run Only Crawl
@@ -538,16 +489,16 @@ const UrlsStep = ({ job, isPopup }) => {
   const currentNode = (
     <div>
       <p>We will only scrape the current page</p>
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: "relative" }}>
         <div
           style={{
-            background: '#fff3',
-            padding: '8px',
-            margin: '10px 0',
+            background: "#fff3",
+            padding: "8px",
+            margin: "10px 0",
             borderRadius: 4,
             fontSize: 13,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {currentUrl}
@@ -571,18 +522,18 @@ const UrlsStep = ({ job, isPopup }) => {
   const manualNode = (
     <div>
       <p>Enter the URLs you would like to scrape (one per row)</p>
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: "relative" }}>
         <textarea
           style={{
-            width: '100%',
+            width: "100%",
             minHeight: 80,
-            fontFamily: 'sans-serif',
-            padding: '8px',
+            fontFamily: "sans-serif",
+            padding: "8px",
             border: 0,
             borderRadius: 4,
             marginBottom: 2,
           }}
-          className={manualError ? 'error' : ''}
+          className={manualError ? "error" : ""}
           placeholder={`https://www.example.com/page-1
 https://www.example.com/page-2
 ...`}
@@ -606,9 +557,9 @@ https://www.example.com/page-2
         <div key="manual">Manually Enter URLs</div>
       </Pills>
 
-      {action == 'current' && currentNode}
-      {action == 'gather' && gatherNode}
-      {action == 'manual' && manualNode}
+      {action == "current" && currentNode}
+      {action == "gather" && gatherNode}
+      {action == "manual" && manualNode}
 
       <Error message={error} />
     </div>
@@ -616,7 +567,7 @@ https://www.example.com/page-2
 };
 
 const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
-  const [questions, setQuestions] = useState(['']);
+  const [questions, setQuestions] = useState([""]);
   const [concurrency, setConcurrency] = useState();
   const [sleepTime, setSleepTime] = useState();
 
@@ -624,15 +575,15 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
   const currentStep = numResults == 0 ? 1 : 2;
   const autoSleepTime = useAutoSleepTime();
 
-  console.log('autoSleepTime', autoSleepTime);
+  console.log("autoSleepTime", autoSleepTime);
 
   const timeoutRef = useRef(null);
 
   useEffect(() => {
     if (!job?.scrape) return;
-    setQuestions(job.scrape?.questions || ['']);
+    setQuestions(job.scrape?.questions || [""]);
     setConcurrency(job.scrape?.concurrency || 3);
-    setSleepTime(job.scrape?.sleepTime || 'auto');
+    setSleepTime(job.scrape?.sleepTime || "auto");
   }, [job]);
 
   if (!job) return null;
@@ -648,7 +599,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
 
     let hasScraped = false;
     for (const target of job?.results?.targets || []) {
-      hasScraped = target.status == 'scraped';
+      hasScraped = target.status == "scraped";
       if (hasScraped) break;
     }
 
@@ -656,41 +607,41 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
 
     timeoutRef.current = setTimeout(async () => {
       if (hasScraped) {
-        await setJobField(job.id, 'scrape', updated);
-        if (field == 'questions') {
+        await setJobField(job.id, "scrape", updated);
+        if (field == "questions") {
           setScrapeStatus(
             job.id,
             await getRoundId(),
             (job.results?.targets || []).map((t) => t.url),
-            'found'
+            "found"
           );
         }
       } else {
-        setJobField(job.id, 'scrape', updated);
+        setJobField(job.id, "scrape", updated);
       }
     }, 200);
   };
 
   const updateConcurrency = (val) =>
-    updateJob('concurrency', val, setConcurrency);
-  const updateSleepTime = (val) => updateJob('sleepTime', val, setSleepTime);
+    updateJob("concurrency", val, setConcurrency);
+  const updateSleepTime = (val) => updateJob("sleepTime", val, setSleepTime);
 
   const updateQuestion = async (index, val) => {
     const q = JSON.parse(JSON.stringify(questions));
     q[index] = val;
-    updateJob('questions', q, setQuestions);
+    updateJob("questions", q, setQuestions);
   };
 
   const removeQuestion = (index) => {
     const q = JSON.parse(JSON.stringify(questions));
     q.splice(index, 1);
-    updateJob('questions', q, setQuestions);
+    updateJob("questions", q, setQuestions);
   };
 
   const addQuestion = () => {
     const q = JSON.parse(JSON.stringify(questions));
-    q.push('');
-    updateJob('questions', q, setQuestions);
+    q.push("");
+    updateJob("questions", q, setQuestions);
   };
 
   let i = 0;
@@ -699,11 +650,11 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
     return (
       <div
         key={index}
-        style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+        style={{ display: "flex", alignItems: "center", gap: 5 }}
       >
-        <div style={{ width: '100%' }}>
+        <div style={{ width: "100%" }}>
           <input
-            style={{ width: '100%', marginBottom: 5 }}
+            style={{ width: "100%", marginBottom: 5 }}
             placeholder={'eg: "What is the star rating of this product?"'}
             value={q}
             onChange={(e) => updateQuestion(index, e.target.value)}
@@ -711,7 +662,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
         </div>
         <div>
           <IoMdCloseCircle
-            style={{ cursor: 'pointer', opacity: 0.8 }}
+            style={{ cursor: "pointer", opacity: 0.8 }}
             size={16}
             onClick={() => removeQuestion(index)}
           />
@@ -721,11 +672,11 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
   });
 
   const controlsNode = (
-    <div style={{ display: 'flex', flexDirection: 'row', gap: 5 }}>
-      <div style={{ width: '60%' }}>
+    <div style={{ display: "flex", flexDirection: "row", gap: 5 }}>
+      <div style={{ width: "60%" }}>
         <p>Max tabs at once. Reduce if you hit rate limits.</p>
         <select
-          style={{ width: '100%' }}
+          style={{ width: "100%" }}
           value={concurrency}
           onChange={(e) => updateConcurrency(e.target.value)}
         >
@@ -753,10 +704,10 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
         </select>
       </div>
 
-      <div style={{ width: '40%' }}>
+      <div style={{ width: "40%" }}>
         <p>Wait time before extraction</p>
         <select
-          style={{ width: '100%' }}
+          style={{ width: "100%" }}
           value={sleepTime}
           onChange={(e) => updateSleepTime(e.target.value)}
         >
@@ -779,7 +730,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
 
   const handleClick = async () => {
     let urls = job.results.targets
-      .filter((t) => t.status != 'scraped')
+      .filter((t) => t.status != "scraped")
       .map((t) => t.url);
 
     if (urls.length == 0) {
@@ -796,18 +747,18 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
   return (
     <div style={stepStyle}>
       <div style={stepHeaderStyle}>
-        What do you want to scrape on{' '}
-        {job.urls?.action == 'current' ? 'this' : 'each'} page?
+        What do you want to scrape on{" "}
+        {job.urls?.action == "current" ? "this" : "each"} page?
       </div>
       {nodes}
 
       <div
         className="btn btn-gray"
         style={{
-          display: 'flex',
-          alignItems: 'center',
+          display: "flex",
+          alignItems: "center",
           width: 92,
-          justifyContent: 'center',
+          justifyContent: "center",
         }}
         onClick={() => addQuestion()}
       >
@@ -815,13 +766,13 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
         &nbsp;Add Field
       </div>
 
-      {['gather', 'manual'].includes(job.urls?.action) && controlsNode}
+      {["gather", "manual"].includes(job.urls?.action) && controlsNode}
 
-      {job.urls.action == 'gather' && (
+      {job.urls.action == "gather" && (
         <div style={{ marginTop: 10 }}>
           <button
-            className={'btn btn-gray btn-md'}
-            style={{ width: '100%' }}
+            className={"btn btn-gray btn-md"}
+            style={{ width: "100%" }}
             disabled={currentStep < 2}
             onClick={handleClick}
           >
@@ -834,17 +785,17 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
 };
 
 const Welcome = ({ isPopup, onStart, onSkip }) => {
-  const [prompt, setPrompt] = useState('');
-  const [url, setUrl] = useState('');
+  const [prompt, setPrompt] = useState("");
+  const [url, setUrl] = useState("");
   const [loading, setLoading] = useState();
   const [manual, setManual] = useState();
-  const [manualUrls, setManualUrls] = useState('');
+  const [manualUrls, setManualUrls] = useState("");
   const [disabled, setDisabled] = useState();
   const jobs = useJobs();
 
   useEffect(() => {
     getActiveTab().then((tab) => setUrl(tab.url));
-    getKey('masterPrompt').then((val) => setPrompt(val || ''));
+    getKey("masterPrompt").then((val) => setPrompt(val || ""));
   }, []);
 
   useEffect(() => {
@@ -853,41 +804,41 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
 
   const examples = [
     [
-      'Find comment pages, get main topic, and tone in 1-3 words',
-      'https://news.ycombinator.com/',
+      "Find comment pages, get main topic, and tone in 1-3 words",
+      "https://news.ycombinator.com/",
     ],
     [
-      'Find number of bedrooms, bathrooms, 2-5 word summary',
-      'https://sfbay.craigslist.org/search/apa#search=1~list~0~0',
+      "Find number of bedrooms, bathrooms, 2-5 word summary",
+      "https://sfbay.craigslist.org/search/apa#search=1~list~0~0",
     ],
     [
-      'Find articles, get title, author, date, key people, company',
-      'https://techcrunch.com/',
+      "Find articles, get title, author, date, key people, company",
+      "https://techcrunch.com/",
     ],
   ];
 
   const exampleStyle = {
-    cursor: 'pointer',
-    background: '#0006',
-    color: '#bbb',
+    cursor: "pointer",
+    background: "#0006",
+    color: "#bbb",
     padding: 10,
     borderRadius: 10,
-    flexBasis: '100%',
+    flexBasis: "100%",
   };
 
   const jobStyle = {
-    cursor: 'pointer',
-    background: '#0006',
-    color: '#bbb',
+    cursor: "pointer",
+    background: "#0006",
+    color: "#bbb",
     padding: 10,
     borderRadius: 10,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   };
 
   const instructionStyle = {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: jobs.length == 0 ? 40 : 20,
   };
 
@@ -912,7 +863,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
         onClick={(e) => handleExample(e, prompt, url)}
         key={i++}
       >
-        <div style={{ whiteSpace: 'nowrap', marginBottom: 4 }}>
+        <div style={{ whiteSpace: "nowrap", marginBottom: 4 }}>
           <b>{new URL(url).hostname}</b>
         </div>
         {prompt}
@@ -921,7 +872,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
   });
 
   const jobNodes = jobs
-    .filter((j) => j && j.name && !j.name.startsWith('Untitled'))
+    .filter((j) => j && j.name && !j.name.startsWith("Untitled"))
     .slice(0, 4)
     .map((j) => {
       return (
@@ -934,9 +885,9 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
   const loadingNode = (
     <div
       style={{
-        position: 'absolute',
-        width: '100%',
-        textAlign: 'center',
+        position: "absolute",
+        width: "100%",
+        textAlign: "center",
         bottom: 0,
       }}
     >
@@ -952,7 +903,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
       const useUrl = isActive ? (await getActiveTab()).url : url;
       let job;
       if (manual) {
-        job = await genJobFromUrls(prompt, manualUrls.split('\n'));
+        job = await genJobFromUrls(prompt, manualUrls.split("\n"));
       } else {
         const page = isActive ? await getTabData() : null;
         if (page.error) {
@@ -961,12 +912,12 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
         }
         job = await genJob(prompt, useUrl, page);
       }
-      console.log('==== GEN JOB DONE ====');
-      console.log('mmm genjob gave:', job);
+      console.log("==== GEN JOB DONE ====");
+      console.log("mmm genjob gave:", job);
       return onStart(job);
     } catch (e) {
-      console.log('mmm caught error in generate job:', e);
-      setGlobalError('Error generating job, try again: ' + e);
+      console.log("mmm caught error in generate job:", e);
+      setGlobalError("Error generating job, try again: " + e);
       throw e;
     } finally {
       setLoading(false);
@@ -975,11 +926,11 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
 
   const timeoutRef = useRef(null);
   const updatePrompt = (e) => {
-    console.log('updatePrompt', e.target.value);
+    console.log("updatePrompt", e.target.value);
     setPrompt(e.target.value);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(
-      () => setKey('masterPrompt', e.target.value),
+      () => setKey("masterPrompt", e.target.value),
       100
     );
   };
@@ -999,8 +950,8 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
       <div style={instructionStyle}>Previous scrapes</div>
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
           gap: 5,
           marginTop: 10,
         }}
@@ -1013,14 +964,14 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
   let urlNode;
   if (manual) {
     urlNode = (
-      <div style={{ color: '#bbb' }}>
+      <div style={{ color: "#bbb" }}>
         <div>Scrape these URLs (one per line)</div>
         <Textarea
           style={{
-            width: '100%',
-            fontFamily: 'sans-serif',
+            width: "100%",
+            fontFamily: "sans-serif",
             fontSize: 14,
-            margin: '5px 0',
+            margin: "5px 0",
             padding: 8,
             paddingLeft: 12,
             paddingRight: 36,
@@ -1037,13 +988,13 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
   } else {
     urlNode = (
       <div
-        style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#bbb' }}
+        style={{ display: "flex", alignItems: "center", gap: 5, color: "#bbb" }}
       >
         <div>
-          Scrape <b style={{ color: '#fff' }}>{url}</b>
+          Scrape <b style={{ color: "#fff" }}>{url}</b>
         </div>
         <MdEditSquare
-          style={{ cursor: 'pointer' }}
+          style={{ cursor: "pointer" }}
           onClick={() => {
             setManual(true);
             setManualUrls(url);
@@ -1058,7 +1009,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
       <FoxSays message="Hi! I'm FetchFox" />
 
       <div style={instructionStyle}>Try these examples</div>
-      <div style={{ display: 'flex', width: '100%', gap: 10, marginTop: 10 }}>
+      <div style={{ display: "flex", width: "100%", gap: 10, marginTop: 10 }}>
         {exampleNodes}
       </div>
 
@@ -1068,20 +1019,20 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
       <div
         style={{
           marginTop: 10,
-          background: '#fff2',
+          background: "#fff2",
           padding: 10,
           borderRadius: 10,
         }}
       >
         {urlNode}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: "relative" }}>
           {/*loading && loadingNode*/}
           {inputNode}
         </div>
       </div>
 
       <div style={{ ...instructionStyle, marginBottom: 40 }}>
-        Know what you're doing?{' '}
+        Know what you're doing?{" "}
         <span className="clickable" onClick={onSkip}>
           Go to Editor &raquo;
         </span>
@@ -1096,16 +1047,16 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
     key: openAiKey,
     plan: openAiPlan,
     loading: loadingOpenAiKey,
-  } = useOpenAiKey('loading');
+  } = useOpenAiKey("loading");
   const job = useActiveJob();
 
-  console.log('Active job:', job);
+  console.log("Active job:", job);
   const handleScrape = async (urls) => {
     return runScrape(job, urls);
   };
 
   const handleRemove = async (urls) => {
-    console.log('remove these target urls:', urls);
+    console.log("remove these target urls:", urls);
     removeUrlsFromJob(job.id, urls);
   };
 
@@ -1119,7 +1070,7 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
       job.id,
       await getRoundId(),
       (job.results?.targets || []).map((t) => t.url),
-      'new'
+      "new"
     );
   };
 
@@ -1146,15 +1097,15 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
         onClick={() => downloadJobCsv(job)}
       >
         <FaFileCsv size={12} /> Download CSV
-      </button>{' '}
-      <Share job={job} />{' '}
+      </button>{" "}
+      <Share job={job} />{" "}
       <button
         className="btn btn-gray"
         disabled={currentStep < 2}
         onClick={clearAll}
       >
         Clear All Data
-      </button>{' '}
+      </button>{" "}
       <button
         className="btn btn-gray"
         disabled={currentStep < 2 || noAnswers}
@@ -1169,8 +1120,8 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
     <div style={mainStyle}>
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
+          display: "flex",
+          alignItems: "center",
           gap: 10,
           marginBottom: 10,
         }}
@@ -1183,24 +1134,24 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
 
         <div
           style={{
-            width: '100%',
-            textAlign: 'left',
+            width: "100%",
+            textAlign: "left",
             fontSize: 14,
-            fontWeight: 'bold',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            fontWeight: "bold",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {job?.name}
         </div>
-        <div style={{ whiteSpace: 'nowrap' }}>
+        <div style={{ whiteSpace: "nowrap" }}>
           <button className="btn btn-gray" onClick={onNewJob}>
             <div
               style={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
                 gap: 5,
               }}
             >
@@ -1210,7 +1161,7 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
         </div>
         <div>
           <div
-            style={{ cursor: 'pointer', position: 'relative', top: 1 }}
+            style={{ cursor: "pointer", position: "relative", top: 1 }}
             onClick={onShowSettings}
           >
             <IoMdSettings size={24} />
@@ -1243,7 +1194,7 @@ const QuotaError = () => {
   const quota = useQuota();
 
   return (
-    <div style={{ color: 'white' }}>
+    <div style={{ color: "white" }}>
       quota error?
       <pre>{JSON.stringify(quota, null, 2)}</pre>
     </div>
@@ -1255,7 +1206,7 @@ export const Scrape = ({ isPopup }) => {
     key: openAiKey,
     plan: openAiPlan,
     loading: loadingOpenAiKey,
-  } = useOpenAiKey('loading');
+  } = useOpenAiKey("loading");
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState();
   const quota = useQuota();
@@ -1263,16 +1214,16 @@ export const Scrape = ({ isPopup }) => {
   const activeJob = useActiveJob();
 
   useEffect(() => {
-    console.log('what should we do?', openAiPlan, openAiKey, loading);
+    console.log("what should we do?", openAiPlan, openAiKey, loading);
 
     if (loadingOpenAiKey) return;
     setLoading(false);
-    if (step == 'settings') return;
+    if (step == "settings") return;
 
-    if (!openAiPlan || (openAiPlan == 'openai' && !openAiKey)) {
-      setStep('settings');
+    if (!openAiPlan || (openAiPlan == "openai" && !openAiKey)) {
+      setStep("settings");
     } else {
-      if (!step) setStep('welcome');
+      if (!step) setStep("welcome");
     }
   }, [openAiKey, openAiPlan, loadingOpenAiKey]);
 
@@ -1280,27 +1231,27 @@ export const Scrape = ({ isPopup }) => {
     if (!activeJob) return;
     if (!loading) return;
 
-    console.log('activeJob changed, check if we need to change the step', step);
+    console.log("activeJob changed, check if we need to change the step", step);
 
     getActiveTab().then(async (tab) => {
-      const jobUrl = getJobUrl(activeJob) || '';
-      const tabUrl = tab ? tab.url : '';
-      const tabHostname = tabUrl ? new URL(tabUrl).hostname : '';
+      const jobUrl = getJobUrl(activeJob) || "";
+      const tabUrl = tab ? tab.url : "";
+      const tabHostname = tabUrl ? new URL(tabUrl).hostname : "";
 
-      const inFlight = await getKey('inFlight');
+      const inFlight = await getKey("inFlight");
       if (inFlight > 0) {
         // Job is running, go to inner page
-        setStep('inner');
+        setStep("inner");
         setLoading(false);
       } else if (jobUrl && jobUrl.indexOf(tabHostname) == -1) {
         // New domain, assume new job
-        console.log('new domain, so change the step');
-        setStep('welcome');
+        console.log("new domain, so change the step");
+        setStep("welcome");
         setLoading(false);
       } else {
         // Pick up where we left off
-        console.log('not changing step');
-        setStep((await getKey('scrapeStep')) || 'welcome');
+        console.log("not changing step");
+        setStep((await getKey("scrapeStep")) || "welcome");
         setLoading(false);
       }
     });
@@ -1310,46 +1261,46 @@ export const Scrape = ({ isPopup }) => {
     if (!activeJob) {
       handleStart(await genBlankJob());
     } else {
-      await setKey('scrapeStep', 'inner');
-      setStep('inner');
+      await setKey("scrapeStep", "inner");
+      setStep("inner");
     }
   };
 
   const handleStart = async (job) => {
     await saveJob(job);
     await setActiveJob(job.id);
-    await setKey('scrapeStep', 'inner');
-    await setStep('inner');
-    setKey('masterPrompt', '');
+    await setKey("scrapeStep", "inner");
+    await setStep("inner");
+    setKey("masterPrompt", "");
     window.scrollTo(0, 0);
   };
 
   const handleNew = async () => {
-    await setKey('scrapeStep', 'welcome');
-    await setStep('welcome');
+    await setKey("scrapeStep", "welcome");
+    await setStep("welcome");
   };
 
   let body;
 
   if (loading || loadingOpenAiKey) {
     body = (
-      <div style={{ padding: 50, textAlign: 'center', color: 'white' }}>
+      <div style={{ padding: 50, textAlign: "center", color: "white" }}>
         <Loading size={50} />
-        <p>loading? {'' + loading}</p>
-        <p>loadingOpenAiKey? {'' + loadingOpenAiKey}</p>
+        <p>loading? {"" + loading}</p>
+        <p>loadingOpenAiKey? {"" + loadingOpenAiKey}</p>
       </div>
     );
-  } else if (!quota.ok || step == 'settings') {
+  } else if (!quota.ok || step == "settings") {
     body = (
       <div style={mainStyle}>
         <OpenAiKeyEntry
           onDone={() => {
-            setStep('welcome');
+            setStep("welcome");
           }}
         />
       </div>
     );
-  } else if (step == 'welcome') {
+  } else if (step == "welcome") {
     body = (
       <Welcome isPopup={isPopup} onStart={handleStart} onSkip={handleSkip} />
     );
@@ -1358,7 +1309,7 @@ export const Scrape = ({ isPopup }) => {
       <Inner
         isPopup={isPopup}
         onNewJob={handleNew}
-        onShowSettings={() => setStep('settings')}
+        onShowSettings={() => setStep("settings")}
       />
     );
   }

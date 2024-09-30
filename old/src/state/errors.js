@@ -1,20 +1,6 @@
-import { useMemo, useEffect, useState } from 'react';
-import { getGlobalError } from '../lib/errors';
+import { useStorage } from "@plasmohq/storage/hook";
 
-export const useGlobalError = () => {
-  const [globalError, setGlobalError] = useState();
-
-  const update = (changes) => {
-    if (changes.globalError) {
-      setGlobalError(changes.globalError.newValue);
-    }
-  };
-
-  useEffect(() => {
-    getGlobalError().then(setGlobalError);
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
-  }, []);
-
+export function useGlobalError() {
+  const [globalError] = useStorage("globalError");
   return globalError;
-};
+}

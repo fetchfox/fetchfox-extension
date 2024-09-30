@@ -1,5 +1,5 @@
-import { isActive } from './controller';
-import { storage } from '../../../lib/storage';
+import { isActive } from "./controller";
+import { storage } from "../../../lib/storage";
 
 let updateQueue = Promise.resolve();
 
@@ -26,8 +26,8 @@ export function setKey(key, value) {
   });
 }
 
-function getJobKey(jobId) {
-  return 'job_' + jobId;
+export function getJobKey(jobId) {
+  return "job_" + jobId;
 }
 
 const updateJob = async (jobId, fn) => {
@@ -37,7 +37,7 @@ const updateJob = async (jobId, fn) => {
 export async function nextId() {
   let ret = 0;
 
-  await updateKey('nextId', (nextId) => {
+  await updateKey("nextId", (nextId) => {
     ret = nextId ?? 0;
     return ret + 1;
   });
@@ -49,57 +49,56 @@ export const getJob = (jobId) => getKey(getJobKey(jobId));
 
 export const saveJob = async (job) => {
   if (!job.id) {
-    throw 'no job id: ' + JSON.stringify(job);
+    throw "no job id: " + JSON.stringify(job);
   }
   return setKey(getJobKey(job.id), job);
 };
 
 export const setJobField = async (jobId, field, val) => {
   return updateJob(jobId, (job) => {
-    console.log('Set job field:', jobId, field, val);
+    console.log("Set job field:", jobId, field, val);
     job[field] = val;
     return job;
   });
 };
 
 export const getActiveJob = async () => {
-  const activeId = await getKey('activeId');
-  if (!activeId) return Promise.resolve(null);
+  const activeId = await getKey("activeId");
+  if (!activeId) return null;
 
   const job = await getJob(activeId);
-  if (!job) return Promise.resolve(null);
+  if (!job) return null;
+
   if (!job.id) {
     job.id = activeId;
-    return saveJob(job).then(() => Promise.resolve(job));
-  } else {
-    return new Promise((ok) => ok(job));
+    await saveJob(job);
   }
+
+  return job;
 };
 
 export const setActiveJob = async (activeId) => {
-  st.activeId = activeId;
-
-  return await chrome.storage.local.set({ activeId });
+  return setKey("activeId", activeId);
 };
 
 export async function setStatus(message, roundId, delta) {
-  console.log('setStatus got message:', message);
+  console.log("setStatus got message:", message);
 
-  await setKey('status', { message });
+  await setKey("status", { message });
   if (roundId && delta) {
     if (await isActive(roundId)) {
-      updateKey('inFlight', (old) => (old ?? 0) + delta);
+      updateKey("inFlight", (old) => (old ?? 0) + delta);
     }
   }
 }
 
 export const setPercent = async (percent, done, total) => {
-  await setKey('percent', Math.max(0.01, Math.min(percent, 0.99)));
-  await setKey('completion', { done, total });
+  await setKey("percent", Math.max(0.01, Math.min(percent, 0.99)));
+  await setKey("completion", { done, total });
 };
 
 export const setScrapeAnswer = async (jobId, url, answer) => {
-  console.log('setScrapeAnswer', jobId, url, answer);
+  console.log("setScrapeAnswer", jobId, url, answer);
 
   let answers = {};
   answers[url] = answer;
@@ -108,7 +107,7 @@ export const setScrapeAnswer = async (jobId, url, answer) => {
 };
 
 export const setScrapeStatus = async (jobId, roundId, urls, val) => {
-  console.log('setScrapeStatus', jobId, roundId, urls, val);
+  console.log("setScrapeStatus", jobId, roundId, urls, val);
 
   return updateJob(jobId, (job) => {
     if (!job.results) job.results = { targets: [] };
@@ -116,7 +115,7 @@ export const setScrapeStatus = async (jobId, roundId, urls, val) => {
       if (urls.includes(target.url)) {
         target.status = val;
         target.roundId = roundId;
-        target.loading = target.status == 'scraping';
+        target.loading = target.status == "scraping";
       }
     }
 
@@ -125,7 +124,7 @@ export const setScrapeStatus = async (jobId, roundId, urls, val) => {
 };
 
 export const clearJobResults = async (jobId) => {
-  console.log('clearJobResults locked update');
+  console.log("clearJobResults locked update");
   return updateJob(jobId, (job) => {
     job.results = { targets: [], answers: {} };
     return job;
@@ -137,7 +136,7 @@ export const addUrlsToJob = async (jobId, urls, clearMissing) => {
     jobId,
     {
       targets: urls.map((x) => {
-        return { url: x, status: 'new' };
+        return { url: x, status: "new" };
       }),
     },
     clearMissing
@@ -145,11 +144,11 @@ export const addUrlsToJob = async (jobId, urls, clearMissing) => {
 };
 
 export const removeUrlsFromJob = async (jobId, rmUrls) => {
-  console.log('removeUrlsFromJob locked update');
+  console.log("removeUrlsFromJob locked update");
   return updateJob(jobId, (job) => {
     if (!job.results) job.results = {};
 
-    console.log('running removeUrlsFromJob', rmUrls);
+    console.log("running removeUrlsFromJob", rmUrls);
 
     const updated = [];
     const existing = job.results?.targets || [];
@@ -170,7 +169,7 @@ export const setJobResults = async (
   clearMissing
 ) => {
   return updateJob(jobId, (job) => {
-    console.log('setting job results', jobId, job);
+    console.log("setting job results", jobId, job);
 
     if (!job.results) job.results = {};
 
@@ -188,9 +187,9 @@ export const setJobResults = async (
     if (targets) job.results.targets = targets;
     if (answers) {
       const guessType = (val) => {
-        if (!isNaN(parseFloat(val))) return 'number';
-        if (('' + val).match(/^https?:\/\//)) return 'url';
-        return 'string';
+        if (!isNaN(parseFloat(val))) return "number";
+        if (("" + val).match(/^https?:\/\//)) return "url";
+        return "string";
       };
 
       const typeCounts = {};
@@ -217,10 +216,10 @@ export const setJobResults = async (
       const types = {};
       for (const h of job.results.answerHeaders) {
         const threshold = 0.5;
-        if (typeCounts[h].url / counts[h] > threshold) types[h] = 'url';
+        if (typeCounts[h].url / counts[h] > threshold) types[h] = "url";
         else if (typeCounts[h].number / counts[h] > threshold)
-          types[h] = 'number';
-        else types[h] = 'string';
+          types[h] = "number";
+        else types[h] = "string";
       }
       job.results.types = types;
 
@@ -259,7 +258,7 @@ export const stopActiveJob = async () => {
     if (!job.results) job.results = {};
 
     for (const target of job.results?.targets || []) {
-      if (target.loading) target.status = 'stopped';
+      if (target.loading) target.status = "stopped";
       target.loading = false;
     }
 

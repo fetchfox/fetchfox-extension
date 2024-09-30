@@ -2,7 +2,7 @@ import Browser from "webextension-polyfill";
 
 import "../old/src/pages/Background";
 
-import icon34 from "../assets/img/icon-34.png";
+import icon34 from "data-base64:~assets/icon-34.png";
 import { storage } from "../lib/storage";
 import { initSentry } from "../old/src/lib/errors";
 import { saveConsole } from "./messages/console";
@@ -18,7 +18,7 @@ storage.watch({
         clearInterval(iconInterval);
         iconInterval = null;
       }
-      chrome.action.setIcon({ path: icon34 });
+      Browser.action.setIcon({ path: icon34 });
     } else if (iconInterval == null) {
       const context = new OffscreenCanvas(100, 100).getContext("2d");
       if (!context) return;
@@ -45,11 +45,11 @@ storage.watch({
           context.stroke();
         }
         const imageData = context.getImageData(10, 10, 19, 19);
-        chrome.action.setIcon({ imageData });
+        Browser.action.setIcon({ imageData });
         context.restore();
       }, 1000 / 30);
     }
-  }
+  },
 });
 
 function installConsoleHooks() {

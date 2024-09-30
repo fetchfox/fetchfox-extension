@@ -1,76 +1,40 @@
-import { useMemo, useEffect, useState } from 'react';
-import {
-  getJob,
-  getActiveJob,
-} from '../lib/store';
-
+import { useStorage } from "@plasmohq/storage/hook";
+import { useEffect, useState } from "react";
+import { storage } from "~lib/storage";
+import { getActiveJob, getJob, getJobKey } from "../lib/store";
 
 export const useJobs = () => {
-  const [jobs, setJobs] = useState([]);
-
-  const update = () => {
-    chrome.storage.local.get().then((st) => {
-      const j = Object.keys(st)
-        .filter(k => k.startsWith('job_'))
-        .map(k => parseInt(k.replace('job_', '')))
-        .sort((a, b) => b - a)
-        .map(k => st['job_' + k]);
-
-      setJobs(j);
-    });
-  };
+  const [jobs, setJobs] = useState({});
+  const [jobIds] = useStorage("jobs_ids");
 
   useEffect(() => {
-    update();
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
+    const keys = jobIds || [];
+
+    const listeners = {};
+    keys.forEach((id) => {
+      const key = getJobKey(id);
+      listeners[key] = async (c) => {
+        setJobs((old) => ({ ...old, [id]: c.newValue }));
+      };
+    });
+
+    storage.watch(listeners);
+    return () => storage.unwatch(listeners);
   }, []);
 
-  return jobs;
-}
+  return useMemo(() => {
+    const sortedJobIds = sort(jobIds || [], (it) => parseInt(it), true);
+    const sortedJobs = sortedJobIds.map((id) => jobs[id]);
+    return sift(sortedJobs);
+  }, [jobIds, jobs]);
+};
 
 export const useJob = (jobId) => {
-  const [job, setJob] = useState();
-
-  const update = (changes) => {
-    if (changes['job_' + jobId]) {
-      setJob(changes['job_' + jobId].newValue)
-    }
-  };
-
-  useEffect(() => {
-    if (!jobId) return;
-    getJob(jobId).then(j => {
-      setJob(j);
-    });
-
-    chrome.storage.onChanged.addListener(update);
-    return () => {
-      chrome.storage.onChanged.removeListener(update);
-    }
-  }, [jobId]);
-
-  return job;
-}
+  const [job] = useStorage(getJobKey(jobId));
+  return job || null;
+};
 
 export const useActiveJob = () => {
-  const [activeId, setActiveId] = useState();
-  const active = useJob(activeId);
-
-  const update = (changes) => {
-    if (changes.activeId) {
-      setActiveId(changes.activeId.newValue);
-    }
-  };
-
-  useEffect(() => {
-    getActiveJob().then(j => {
-      if (!j) return;
-      setActiveId(j.id);
-    });
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
-  }, []);
-
-  return active;
-}
+  const [activeId] = useStorage("activeId");
+  return useJob(activeId);
+};

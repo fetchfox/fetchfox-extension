@@ -1,27 +1,14 @@
-import { useMemo, useEffect, useState } from 'react';
-import { getModel, getAvailableModels } from '../lib/ai';
-import { getKey } from '../lib/store';
-import { useRoundId } from '../lib/controller';
-import OpenAI from 'openai';
+import { useMemo, useEffect, useState } from "react";
+import { getModel, getAvailableModels } from "../lib/ai";
+import { getKey } from "../lib/store";
+import { useRoundId } from "../lib/controller";
+import OpenAI from "openai";
+import { useStorage } from "@plasmohq/storage/hook";
 
 export const useOpenAiKey = () => {
-  const [key, setKey] = useState();
-  const [plan, setPlan] = useState();
-  const [loading, setLoading] = useState(true);
-
-  const update = () => {
-    chrome.storage.local.get().then((st) => {
-      setKey(st.openAiKey);
-      setPlan(st.openAiPlan);
-      setLoading(false);
-    });
-  };
-
-  useEffect(() => {
-    update();
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
-  }, []);
+  const [key, , { isLoading: keyIsLoading }] = useStorage("openAiKey");
+  const [plan, , { isLoading: planIsLoading }] = useStorage("openAiPlan");
+  const loading = keyIsLoading || planIsLoading;
 
   return { key, plan, loading };
 };
@@ -41,42 +28,26 @@ export const useOpenAiModels = () => {
 
 export const useUsage = () => {
   const roundId = useRoundId();
-  const [usage, setUsage] = useState({});
-
-  const update = (changes) => {
-    const key = 'roundUsage_' + roundId;
-    if (changes[key]) {
-      setUsage(changes[key].newValue);
-    }
-  };
-
-  useEffect(() => {
-    if (!roundId) return;
-    const key = 'roundUsage_' + roundId;
-    getKey(key).then((u) => setUsage(u || {}));
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
-  }, [roundId]);
-
+  const [usage] = useStorage("roundUsage_" + roundId);
   return usage;
 };
 
 export const useQuota = () => {
   const [quota, setQuota] = useState({ ok: true });
-  const openai = useOpenAiKey();
+  const { key: openaiKey, plan: openaiPlan } = useOpenAiKey();
   const models = useOpenAiModels();
 
   useEffect(() => {
-    if (!openai?.key) return;
+    if (!openaiKey) return;
     if (!models?.model) return;
 
-    if (openai?.plan == 'free') {
+    if (openaiPlan == "free") {
       setQuota({ credits: 1, ok: true });
       return;
     }
 
     const client = new OpenAI({
-      apiKey: openai.key,
+      apiKey: openaiKey,
       dangerouslyAllowBrowser: true,
     });
 
@@ -85,19 +56,19 @@ export const useQuota = () => {
     client.chat.completions
       .create({
         model: models.model,
-        messages: [{ role: 'user', content: 'test' }],
+        messages: [{ role: "user", content: "test" }],
       })
       .then((resp) => {
         setQuota({ credits: 1, ok: true });
       })
       .catch((err) => {
-        if (err.code == 'insufficient_quota') {
+        if (err.code == "insufficient_quota") {
           setQuota({ credits: 0, error: err, ok: false });
         } else {
           setQuota({ error: err, ok: false });
         }
       });
-  }, [openai?.plan, openai?.key, models?.model]);
+  }, [openaiPlan, openaiKey, models?.model]);
 
   return quota;
 };
