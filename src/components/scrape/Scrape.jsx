@@ -355,7 +355,7 @@ const UrlsStep = ({ job, isPopup }) => {
   const updateTabAndAction = (t) => {
     setTab(t);
     updateAction(t);
-    updatePerPage('guess');
+    // updatePerPage('guess');
   }
 
   const numResults = (job?.results?.targets || []).length;
@@ -1225,8 +1225,6 @@ export const Scrape = ({ isPopup }) => {
   const activeJob = useActiveJob();
 
   useEffect(() => {
-    console.log('what should we do?', openAiPlan, openAiKey, loading);
-
     if (loadingOpenAiKey) return;
     setLoading(false);
     if (step == 'settings') return;
@@ -1240,9 +1238,7 @@ export const Scrape = ({ isPopup }) => {
 
   useEffect(() => {
     if (!activeJob) return;
-    if (!loading) return;
-
-    console.log('activeJob changed, check if we need to change the step', step);
+    // if (!loading) return;
 
     getActiveTab()
       .then(async (tab) => {
@@ -1257,12 +1253,10 @@ export const Scrape = ({ isPopup }) => {
           setLoading(false);
         } else if (jobUrl && jobUrl.indexOf(tabHostname) == -1) {
           // New domain, assume new job
-          console.log('new domain, so change the step');
           setStep('welcome');
           setLoading(false);
         } else {
           // Pick up where we left off
-          console.log('not changing step');
           setStep(await getKey('scrapeStep') || 'welcome');
           setLoading(false);
         }
