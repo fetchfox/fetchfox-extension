@@ -82,6 +82,7 @@ export const Results = ({
   const numResults = targets ? targets.length : 0;
 
   const shortUrl = (url) => {
+    if (!url) return url;
     if (url.length < 100) return url;
     return url.substr(0, 90) + '...';
   }
