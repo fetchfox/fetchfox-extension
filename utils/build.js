@@ -1,9 +1,6 @@
 // Do this as the first thing so that any code reading it knows the right env.
 require('dotenv').config();
 
-console.log('process.env.SENTRY_AUTH_TOKEN', process.env.SENTRY_AUTH_TOKEN);
-throw 'x';
-
 process.env.BABEL_ENV = process.env.NODE_ENV || 'production';
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 process.env.ASSET_PATH = '/';
