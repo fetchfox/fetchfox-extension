@@ -71,10 +71,7 @@ export const findPagination = async (page) => {
   const roundId = await getRoundId();
 
   const cached = await getCache('pagination', [page.url]);
-  if (cached) {
-    console.log('pagination found cached', cached);
-    return cached;
-  }
+  if (cached) return cached;
 
   const likelyPagintion = (url) => {
     const regexes = [
