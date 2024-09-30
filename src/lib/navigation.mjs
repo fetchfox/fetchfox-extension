@@ -183,7 +183,6 @@ export const getTabData = async (tabId, options) => {
         });
     });
 
-    console.log('Got all frames:', tabId, frames);
     for (const frame of (frames || [])) {
       console.log('- Frame:', tabId, frame.url, frame);
     }
@@ -294,8 +293,6 @@ export const suggestSleep = (url) => {
 }
 
 const injectFunction = async (sleepTime, shouldCheckLoad) => {
-  console.log('injected', sleepTime, shouldCheckLoad);
-
   const defaultSleep = shouldCheckLoad ? 500 : (sleepTime || 1500);
   const dynamicSleep = 2000;
 
@@ -458,15 +455,84 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         }
       }
 
-      const tags = document.querySelectorAll('a');
       let id = 0;
+      const getLinks = (node) => {
+        const tags = document.querySelectorAll('a');
+        return Array.from(tags)
+          .filter(a => a.href)
+          .map(a => ({
+            id: id++,
+            html: a.outerHTML.substr(0, 1000),
+            text: a.innerText.substr(0, 200),
+            url: a.href,
+          }));
+      }
+      const links = getLinks(document);
 
-      const links = Array.from(tags).map(a => ({
-        id: id++,
-        html: a.outerHTML.substr(0, 1000),
-        text: a.innerText.substr(0, 200),
-        url: a.href,
-      }));
+      const fetchWithTimeout = async (urls) => {
+        const timeout = new Promise((ok) => setTimeout(() => ok('timeout'), 2000));
+        const fetches = urls.map(url => fetch(url));
+        const result = await Promise.race([
+          timeout,
+          Promise.allSettled(fetches),
+        ]);
+
+        let settled;
+        if (result == 'timeout') {
+          const isSettled = async (p) => {
+            const result = await Promise.race([p, Promise.resolve('pending')]);
+            return result == 'pending' ? 'pending' : 'fulfilled';
+          }
+          const statuses = await Promise.all(fetches.map(isSettled));
+          settled = fetches.map((val, index) => {
+            if (statuses[index] == 'fulfilled') {
+              return val;
+            } else {
+              return null;
+            }
+          });
+        } else {
+          settled = result;
+        }
+        return (await Promise.all(settled)).map(x => x.value);
+      }
+
+      const fetchTitles = async (urls) => {
+        const fetches = await fetchWithTimeout(urls);
+        const texts = await Promise.all(fetches.map(async (resp) => {
+          if (!resp) return '[no response]';
+          return await resp.text();
+        }));
+        return await Promise.all(texts.map((text) => {
+          const node = document.createElement('div');
+          node.innerHTML = text;
+          const title = node.querySelector('title');
+          node.remove();
+          return title ? title.innerText : '[no title]';
+        }));
+      }
+
+      const iframes = document.querySelectorAll('iframe');
+      const iframeLinks = Array.from(iframes)
+            .filter(iframe => iframe.src)
+            .map(iframe => ({
+              html: '',
+              text: '',
+              url: iframe.src,
+              iframe: true,
+            }));
+
+      const iframeTitles = await fetchTitles(iframeLinks.map(l => l.url));
+
+      for (let i = 0; i < iframeTitles.length; i++) {
+        const title = iframeTitles[i];
+        const url = iframeLinks[i].url;
+        iframeLinks[i].html = `<a href="${url}">${title}</a>`;
+        iframeLinks[i].text = title;
+      }
+
+      console.log('iframeLinks', iframeLinks);
+      links.push(...iframeLinks);
 
       ok({ url, text, html, links });
     })
