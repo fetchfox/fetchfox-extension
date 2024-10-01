@@ -1,4 +1,4 @@
-import { exec } from "./ai";
+import { execPrompt } from "./ai";
 import { sleep } from "./util";
 import { setStatus } from "./store";
 import { getRoundId, isActive } from "./controller";
@@ -82,7 +82,7 @@ export const scrapePage = async (
     console.log("manual scrape sending context", context);
 
     let prevLength = 1; // set it to 1 to ignore itemCount row
-    const a = await exec("scrape", context, async (partial) => {
+    const a = await execPrompt("scrape", context, async (partial) => {
       if (partial?.length && partial[0].itemCount) {
         expectedItemCount = partial[0].itemCount;
       }

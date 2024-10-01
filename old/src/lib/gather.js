@@ -1,4 +1,4 @@
-import { stream, exec } from "./ai";
+import { stream, execPrompt } from "./ai";
 import { sleep, shuffle } from "./util";
 import {
   getRoundId,
@@ -67,13 +67,16 @@ const expander = (page, item) => {
 };
 
 export const findPagination = async (page) => {
+  console.log("findPagination", 1);
   const roundId = await getRoundId();
+  console.log("findPagination", 2);
 
   const cached = await getCache("pagination", [page.url]);
   if (cached) {
     console.log("pagination found cached", cached);
     return cached;
   }
+  console.log("findPagination", 3);
 
   const likelyPagintion = (url) => {
     const regexes = [
@@ -98,6 +101,7 @@ export const findPagination = async (page) => {
     }
     return false;
   };
+  console.log("findPagination", 4);
   const links = JSON.parse(JSON.stringify(page.links));
   links.sort((a, b) => {
     const [la, lb] = [likelyPagintion(a.url), likelyPagintion(b.url)];
@@ -106,6 +110,7 @@ export const findPagination = async (page) => {
     if (lb) return 1;
   });
   console.log("pagination sorted links:", links);
+  console.log("findPagination", 5);
 
   const limit = 10000;
   const chunked = chunkList(links.map(slimmer), limit);
@@ -114,13 +119,14 @@ export const findPagination = async (page) => {
   let pages = [];
 
   const max = Math.min(4, chunked.length);
+  console.log("findPagination", 6);
 
   for (let i = 0; i < max; i++) {
     if (!(await isActive(roundId))) break;
     const chunk = chunked[i];
     console.log("find pagination from chunk:", chunk);
 
-    const answer = await exec("pagination", {
+    const answer = await execPrompt("pagination", {
       list: JSON.stringify(chunk.map(slimmer), null, 2),
     });
 
@@ -142,10 +148,11 @@ export const findPagination = async (page) => {
 
     if (pages.length >= 10) break;
   }
+  console.log("findPagination", 7);
 
   if (pages.length > 0) {
     // Run it again to check for dupes, etc.
-    const answer = await exec("pagination", {
+    const answer = await execPrompt("pagination", {
       list: JSON.stringify(pages.slice(0, 50).map(slimmer), null, 2),
     });
 
@@ -160,6 +167,8 @@ export const findPagination = async (page) => {
     );
     pages.unshift({ url: page.url, pageNumber: 0 });
   }
+
+  console.log("findPagination", 8);
 
   // Disabled, since we are not using the "Next" field right now
 
@@ -194,7 +203,7 @@ export const parseLinks = async (page, question, cb, templateName) => {
     const chunk = chunked[i];
 
     const answer =
-      (await exec("gather", {
+      (await execPrompt("gather", {
         question,
         list: JSON.stringify(chunk.map(slimmer), null, 2),
       })) || [];

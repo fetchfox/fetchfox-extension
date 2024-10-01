@@ -1,7 +1,7 @@
 import { useStorage } from "@plasmohq/storage/hook";
 import { sift, sort } from "radash";
 import { useEffect, useMemo, useState } from "react";
-import { storage } from "~lib/storage";
+import { storage } from "~lib/extension";
 import { getJobKey } from "../lib/store";
 
 export const useJobs = () => {

@@ -1,6 +1,6 @@
 import { useStorage } from "@plasmohq/storage/hook";
 import { useEffect, useState } from "react";
-import { storage } from "~lib/storage";
+import { storage } from "~lib/extension";
 import { setKey, stopActiveJob, updateKey } from "./store";
 import { r0 } from "radash";
 

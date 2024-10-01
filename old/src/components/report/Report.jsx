@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { FaShareFromSquare } from "react-icons/fa6";
 import { LuCopy, LuCopyCheck } from "react-icons/lu";
-import Browser from "webextension-polyfill";
+import { webExtension } from "~old/src/lib/browser";
 import {
   bgColor,
   discordUrl,

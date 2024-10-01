@@ -1,8 +1,8 @@
 import { sendToBackground } from "@plasmohq/messaging";
-import Browser from "webextension-polyfill";
+import { webExtension } from "~old/src/lib/browser";
 
 export const runJob = async (job) => {
-  const [current] = await Browser.tabs.query({
+  const [current] = await chrome.tabs.query({
     active: true,
     currentWindow: true,
   });
@@ -11,7 +11,7 @@ export const runJob = async (job) => {
 };
 
 export const runGather = async (job) => {
-  const [current] = await Browser.tabs.query({
+  const [current] = await chrome.tabs.query({
     active: true,
     currentWindow: true,
   });

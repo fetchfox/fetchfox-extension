@@ -29,7 +29,7 @@ export const useOpenAiModels = () => {
 export const useUsage = () => {
   const roundId = useRoundId();
   const [usage] = useStorage("roundUsage_" + roundId);
-  return usage;
+  return usage || {};
 };
 
 export const useQuota = () => {

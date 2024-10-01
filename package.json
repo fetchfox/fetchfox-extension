@@ -81,6 +81,13 @@
   "manifest": {
     "host_permissions": [
       "https://*/*"
+    ],
+    "permissions": [
+      "webNavigation",
+      "sidePanel",
+      "tabs",
+      "scripting",
+      "storage"
     ]
   }
 }

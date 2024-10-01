@@ -11,7 +11,7 @@ export const useAutoSleepTime = () => {
     const times = (job?.results?.targets || [])
       .flatMap((target) => {
         const hostname = new URL(target.url).hostname;
-        return loadSleepTimes[hostname]?.times || [];
+        return (loadSleepTimes || {})[hostname]?.times || [];
       })
       .map(parseFloat);
 

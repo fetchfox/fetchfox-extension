@@ -1,14 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  IoMdSettings,
-  IoMdAddCircle,
-  IoMdCloseCircle,
-  IoMdArrowBack,
-  IoIosArrowDroprightCircle,
-} from "react-icons/io";
-import { IoPlayCircle, IoCloseCircle } from "react-icons/io5";
-import { NewScrape } from "../newscrape/NewScrape";
+import { useState } from "react";
+import { IoMdCloseCircle } from "react-icons/io";
+import { IoPlayCircle } from "react-icons/io5";
 import { Loading } from "../common/Loading";
+import { NewScrape } from "../newscrape/NewScrape";
 
 export const Results = ({
   job,
@@ -208,7 +202,7 @@ export const Results = ({
 
   let countsStr = "";
 
-  if (job.scrape?.scrapeType === "multiPage") {
+  if (job?.scrape?.scrapeType === "multiPage") {
     countsStr +=
       counts.total + " " + (counts.total === 1 ? "result" : "results");
     countsStr += " (" + counts.scraped + " scraped";

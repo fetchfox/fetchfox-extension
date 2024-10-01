@@ -1,5 +1,5 @@
 import { isActive } from "./controller";
-import { storage } from "../../../lib/storage";
+import { storage } from "../../../lib/extension";
 
 let updateQueue = Promise.resolve();
 

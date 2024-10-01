@@ -21,7 +21,7 @@ export async function estimateTokens(prompt) {
   return prompt.length / 4;
 }
 
-export async function exec(name, args, cb, modelOverride) {
+export async function execPrompt(name, args, cb, modelOverride) {
   const model = modelOverride ? modelOverride : await getModel();
   const plan = await getKey("openAiPlan");
 

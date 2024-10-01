@@ -1,9 +1,9 @@
-import Browser from "webextension-polyfill";
+import { webExtension } from "~old/src/lib/browser";
 
 import icon34 from "data-base64:~assets/icon-34.png";
-import { storage } from "../lib/storage";
-import { initSentry } from "../old/src/lib/errors";
-import { saveConsole } from "./messages/console";
+import { storage } from "../lib/extension";
+import { initSentry } from "~old/src/lib/errors";
+import { saveConsole } from "~background/shared";
 
 initSentry();
 
@@ -18,7 +18,7 @@ storage.watch({
         clearInterval(iconInterval);
         iconInterval = null;
       }
-      Browser.action.setIcon({ path: icon34 });
+      chrome.action.setIcon({ path: icon34 });
     } else if (iconInterval === null) {
       const context = new OffscreenCanvas(100, 100).getContext("2d");
       if (!context) return;
@@ -45,7 +45,7 @@ storage.watch({
           context.stroke();
         }
         const imageData = context.getImageData(10, 10, 19, 19);
-        Browser.action.setIcon({ imageData });
+        chrome.action.setIcon({ imageData });
         context.restore();
       }, 1000 / 30);
     }
@@ -53,7 +53,7 @@ storage.watch({
 });
 
 function installConsoleHooks() {
-  const devMode = !("update_url" in Browser.runtime.getManifest());
+  const devMode = !("update_url" in chrome.runtime.getManifest());
   if (devMode) return;
 
   ["log", "warn", "error"].forEach((key) => {

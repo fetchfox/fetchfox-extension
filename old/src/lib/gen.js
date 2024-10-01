@@ -1,4 +1,4 @@
-import { exec, query, stream } from "./ai";
+import { execPrompt, query, stream } from "./ai";
 import { sleep } from "./util";
 import { setStatus, nextId } from "./store";
 import { genJobTemplate } from "./templates";
@@ -29,7 +29,7 @@ export const genJob = async (scrapePrompt, url, page) => {
   const modelOverride = available.includes("gpt-4o") ? "gpt-4o" : null;
   console.log("using modelOverride for gen job:", modelOverride);
 
-  const answer = await exec(
+  const answer = await execPrompt(
     "genJob2",
     {
       url,

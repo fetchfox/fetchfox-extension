@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Loading } from "../common/Loading";
-import { Checkbox } from "../common/Checkbox";
 import { usePagination } from "../../state/gather";
-import { useActiveJob } from "../../state/jobs";
 import { useActivePage } from "../../state/navigation";
+import { Checkbox } from "../common/Checkbox";
+import { Loading } from "../common/Loading";
 
 export const Pagination = ({ onChange, follow, count }) => {
   const activePage = useActivePage();

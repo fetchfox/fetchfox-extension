@@ -1,6 +1,5 @@
 import JSON5 from "json5";
-
-export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+export { sleep } from "radash";
 
 export const shuffle = (a) => {
   for (let i = a.length - 1; i > 0; i--) {

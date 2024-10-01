@@ -1,3 +1,3 @@
-import Popup from "./old/src/pages/Popup/Popup"
+import Popup from "~old/src/pages/Popup/Popup";
 
-export default Popup
+export default Popup;

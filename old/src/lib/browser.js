@@ -1,8 +1,18 @@
-import Browser from "webextension-polyfill";
+/*
+function getWebExtensionGlobal() {
+  // if (typeof browser !== "undefined") return browser;
+  // if (typeof chrome !== "undefined") return chrome;
+
+  // throw new Error("couldn't locate webextension support");
+  return chrome
+}
+
+export const webExtension = getWebExtensionGlobal();
+*/
 
 async function getTab(tabId) {
   try {
-    return await Browser.tabs.get(tabId);
+    return await chrome.tabs.get(tabId);
   } catch (err) {
     console.log(err);
     return null;
@@ -17,7 +27,7 @@ export const checkIfTabExists = async (tabId) => {
 export const closeTabIfExists = async (tabId) => {
   const tab = await getTab(tabId);
   if (tab) {
-    await Browser.tabs.remove(tab.id);
+    await chrome.tabs.remove(tab.id);
   }
 };
 

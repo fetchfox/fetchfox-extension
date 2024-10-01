@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { useOpenAiKey, useOpenAiModels, useQuota } from "../../state/openai";
-import { setKey } from "../../lib/store";
-import { Error } from "../common/Error";
-import { FoxSays } from "../fox/FoxSays";
-import { IoIosCheckmarkCircle, IoIosCircle } from "react-icons/io";
-import { FiCircle, FiCheckCircle } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { FiCheckCircle, FiCircle } from "react-icons/fi";
 import { RiErrorWarningFill } from "react-icons/ri";
-import { mainColor } from "../../lib/constants";
+import { setKey } from "../../lib/store";
+import { useOpenAiKey, useOpenAiModels, useQuota } from "../../state/openai";
+import { FoxSays } from "../fox/FoxSays";
 
 const QuotaError = () => {
   const quota = useQuota();

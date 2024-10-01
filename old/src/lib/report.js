@@ -1,6 +1,6 @@
-import { apiHost } from './constants';
-import { getActiveJob } from './store';
-import Browser from 'webextension-polyfill';
+import { apiHost } from "./constants";
+import { getActiveJob } from "./store";
+import { webExtension } from "~old/src/lib/browser";
 
 export const sendReport = async (logs) => {
   const maxBytes = 900000;
@@ -9,18 +9,18 @@ export const sendReport = async (logs) => {
     logs = logs.substr(l - maxBytes);
   }
 
-  const job = Object.assign({}, (await getActiveJob()));
+  const job = Object.assign({}, await getActiveJob());
   if (job.results?.targets) {
     // Don't need too many of these
     job.results.targets = job.results.targets.slice(0, 50);
   }
-  const url = apiHost + '/api/report';
+  const url = apiHost + "/api/report";
   const report = {
-    manifest: Browser.runtime.getManifest(),
+    manifest: chrome.runtime.getManifest(),
     job,
     logs,
-  }
-  console.log('sending report:', logs.substr(0, 100), report);
+  };
+  console.log("sending report:", logs.substr(0, 100), report);
   let body = JSON.stringify({ report });
 
   // Stay under Vercel cap
@@ -29,6 +29,6 @@ export const sendReport = async (logs) => {
     body = body.substr(0, 4000000);
   }
 
-  const resp = await fetch(url, { method: 'POST', body });
+  const resp = await fetch(url, { method: "POST", body });
   return resp.json();
-}
+};

@@ -1,38 +1,30 @@
-import Browser from "webextension-polyfill";
+import { webExtension } from "~old/src/lib/browser";
 
-import { sendReport } from "../old/src/lib/report";
-import { getKey, setKey } from "../old/src/lib/store";
-import { getRoundId, isActive } from "../old/src/lib/controller";
-import { cleanLinks, dedupeLinks, parseLinks } from "../old/src/lib/gather";
+import { execPrompt } from "~old/src/lib/ai";
+import { getRoundId, isActive } from "~old/src/lib/controller";
+import { cleanLinks, dedupeLinks, parseLinks } from "~old/src/lib/gather";
+import { getActiveTab, getPageData, getTabData } from "~old/src/lib/navigation";
+import { sendReport } from "~old/src/lib/report";
+import { scrapePage } from "~old/src/lib/scrape";
 import {
-  getActiveTab,
-  getPageData,
-  getTabData,
-} from "../old/src/lib/navigation";
-import {
+  getActiveJob,
+  getKey,
+  saveJob,
+  setJobField,
   setJobResults,
-  setPercent,
-  setScrapeStatus,
-  setStatus,
-} from "../old/src/lib/store";
-import { splitUrls } from "../old/src/lib/util";
-import { getRoundId, isActive } from "../old/src/lib/controller";
-import { getPageData } from "../old/src/lib/navigation";
-import { scrapePage } from "../old/src/lib/scrape";
-import {
+  setKey,
   setPercent,
   setScrapeAnswer,
   setScrapeStatus,
   setStatus,
-} from "../old/src/lib/store";
-import { sleep } from "../old/src/lib/util";
-import { maybeNameJob } from "../shared";
+} from "~old/src/lib/store";
+import { sleep, splitUrls } from "~old/src/lib/util";
 
 const runGetName = async (job) => {
   const slim = {};
   slim.scrape = job.scrape;
   slim.urls = job.urls;
-  return exec("name", { job: JSON.stringify(slim, null, 2) }).then(
+  return execPrompt("name", { job: JSON.stringify(slim, null, 2) }).then(
     (x) => x.name
   );
 };
@@ -64,7 +56,7 @@ export async function checkLoading(text, html) {
     return { status: "ok", answer: { status: "done" } };
   }
 
-  const answer = await exec("checkLoading", {
+  const answer = await execPrompt("checkLoading", {
     text: text.substring(0, 10000),
     html: html.substring(0, 30000),
     questions: JSON.stringify(job.scrape?.questions || []),
@@ -324,7 +316,7 @@ export async function runScrape(job, urls, percentAdd) {
       onCreate: (tab) => {
         timeoutId = setTimeout(() => {
           try {
-            Browser.tabs.remove(tab.id);
+            chrome.tabs.remove(tab.id);
           } catch (e) {}
         }, 15 * 1000);
       },

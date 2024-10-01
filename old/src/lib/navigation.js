@@ -1,16 +1,14 @@
-import { setStatus, setKey } from "./store";
+import { sendPortMessage } from "~lib/extension";
+import { closeTabIfExists, getTabUrl } from "./browser";
+import { apiHost } from "./constants";
 import {
+  addListener,
   getRoundId,
   isActive,
-  addListener,
   removeListener,
 } from "./controller";
+import { setKey, setStatus } from "./store";
 import { sleep } from "./util";
-import { getTabUrl, closeTabIfExists } from "./browser";
-import { apiHost } from "./constants";
-import { setGlobalError } from "./errors";
-import Browser from "webextension-polyfill";
-import { sendToBackground } from "@plasmohq/messaging";
 
 const loadSleepTimes = {};
 
@@ -72,15 +70,15 @@ const getPageDataIteration = async (url, options) => {
 
   let tab;
   if (active) {
-    tab = await Browser.tabs.create({ url, active: true });
+    tab = await chrome.tabs.create({ url, active: true });
 
     // if (activeTab) {
-    //   tab = await Browser.tabs.update(activeTab.id, { url });
+    //   tab = await chrome.tabs.update(activeTab.id, { url });
     // } else {
-    //   tab = await Browser.tabs.create({ url, active: true });
+    //   tab = await chrome.tabs.create({ url, active: true });
     // }
   } else {
-    tab = await Browser.tabs.create({ url, active: false });
+    tab = await chrome.tabs.create({ url, active: false });
   }
 
   if (onCreate) onCreate(tab);
@@ -90,7 +88,7 @@ const getPageDataIteration = async (url, options) => {
   let error;
 
   const errorLoad = new Promise((ok, bad) => {
-    const listener = Browser.webNavigation.onErrorOccurred.addListener(
+    const listener = chrome.webNavigation.onErrorOccurred.addListener(
       (details) => {
         if (details.tabId === tab.id) {
           if (details.frameType === "outermost_frame") {
@@ -102,22 +100,22 @@ const getPageDataIteration = async (url, options) => {
     );
 
     errorHandleStop = () => {
-      Browser.webNavigation.onErrorOccurred.removeListener(listener);
+      chrome.webNavigation.onErrorOccurred.removeListener(listener);
       if (!active) closeTabIfExists(tab.id);
     };
     addListener(errorHandleStop);
   });
 
   const pageLoad = new Promise((ok, bad) => {
-    const listener = Browser.tabs.onUpdated.addListener((tabId, info) => {
+    const listener = chrome.tabs.onUpdated.addListener((tabId, info) => {
       if (tabId === tab.id && info.status === "complete") {
-        Browser.tabs.onUpdated.removeListener(listener);
+        chrome.tabs.onUpdated.removeListener(listener);
         ok("ok");
       }
     });
 
     handleStop = () => {
-      Browser.tabs.onUpdated.removeListener(listener);
+      chrome.tabs.onUpdated.removeListener(listener);
       if (!active) closeTabIfExists(tab.id);
     };
     addListener(handleStop);
@@ -189,7 +187,7 @@ export const getTabData = async (tabId, options) => {
     }
     console.log("sleep args", tabId, args);
 
-    const frames = await Browser.webNavigation.getAllFrames({ tabId });
+    const frames = await chrome.webNavigation.getAllFrames({ tabId });
 
     console.log("Got all frames:", tabId, frames);
     for (const frame of frames || []) {
@@ -197,7 +195,7 @@ export const getTabData = async (tabId, options) => {
     }
 
     try {
-      results = await Browser.scripting.executeScript({
+      results = await chrome.scripting.executeScript({
         target: { tabId },
         injectImmediately: true,
         args,
@@ -242,7 +240,10 @@ export const getTabData = async (tabId, options) => {
 };
 
 export const getActiveTab = async () => {
-  const tabs = await Browser.tabs.query({ active: true, currentWindow: true });
+  const tabs = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
   return tabs[0] || null;
 };
 
@@ -251,7 +252,7 @@ export const getTabWithUrl = async (url) => {
   // Query without hash
   const noHash = url.replace(u.hash, "");
 
-  const tabs = await Browser.tabs.query({ url: noHash });
+  const tabs = await chrome.tabs.query({ url: noHash });
 
   console.log("lll got tabs after query", url, tabs);
   return (tabs || []).find((it) => it.url === url);
@@ -312,8 +313,6 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
     ),
 
     new Promise(async (ok) => {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
       const start = new Date().getTime();
 
       // Sleep a for dynamic content
@@ -387,44 +386,29 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       for (i = 0; shouldCheckLoad & (i < maxDynamicWaits); i++) {
         // Check if its loaded
         console.log("== check if loaded ==", { text, html });
-        const resp = await sendToBackground({
-          name: "checkLoading",
-          body: {
-            text,
-            html,
-          },
-        });
 
+        const resp = await sendPortMessage("checkLoading", { text, html });
         if (resp.answer?.status === "done" || resp.status === "error") {
           console.log("== checkLoading done! break ==");
 
           if (i > 0) {
-            sendToBackground({
-              name: "setStatus",
-              body: {
-                message: "Loaded dynamic content on " + url,
-              },
+            sendPortMessage("setStatus", {
+              message: "Loaded dynamic content on " + url,
             });
           }
           break;
         }
 
         // Page maybe not loaded... let's wait and try again
-        sendToBackground({
-          name: "setStatus",
-          body: {
-            message: "Waiting for dynamic content on " + url,
-          },
+        sendPortMessage("setStatus", {
+          message: "Waiting for dynamic content on " + url,
         });
         console.log("== checkLoading waiting ==");
         await sleep(dynamicSleep);
 
         if (i + 1 === maxDynamicWaits) {
-          sendToBackground({
-            name: "setStatus",
-            body: {
-              message: "Stop waiting for dynamic content on " + url,
-            },
+          sendPortMessage("setStatus", {
+            message: "Stop waiting for dynamic content on " + url,
           });
         }
 
@@ -435,13 +419,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
       const took = new Date().getTime() - start;
 
       if (shouldCheckLoad) {
-        sendToBackground({
-          name: "reportSleep",
-          body: {
-            url,
-            msec: took,
-          },
-        });
+        sendPortMessage("reportSleep", { url, msec: took });
       }
 
       console.log("check for redir", text);

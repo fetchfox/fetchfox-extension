@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { IoIosCheckmark } from 'react-icons/io';
-import { IoCheckmarkCircle, IoEllipseOutline } from 'react-icons/io5';
-import { mainColor } from '../../lib/constants';
+import { IoIosCheckmark } from "react-icons/io";
+import { mainColor } from "../../lib/constants";
 
 export const Checkbox = ({ size, checked, disabled, onClick, children }) => {
   size ||= 18;
@@ -9,12 +7,12 @@ export const Checkbox = ({ size, checked, disabled, onClick, children }) => {
     <div
       onClick={onClick}
       style={{
-        cursor: 'default',
+        cursor: "default",
         opacity: disabled ? 0.5 : 1,
-        display: 'flex',
-        alignItems: 'center',
+        display: "flex",
+        alignItems: "center",
         gap: 5,
-        userSelect: 'none',
+        userSelect: "none",
       }}
     >
       <div>
@@ -22,7 +20,7 @@ export const Checkbox = ({ size, checked, disabled, onClick, children }) => {
           <div
             style={{
               background: mainColor,
-              border: '1px solid ' + mainColor,
+              border: "1px solid " + mainColor,
               borderRadius: size / 2,
               width: size,
               height: size,
@@ -30,14 +28,14 @@ export const Checkbox = ({ size, checked, disabled, onClick, children }) => {
           >
             <IoIosCheckmark
               size={size * 1.25}
-              style={{ color: 'white', marginLeft: -3, marginTop: -3 }}
+              style={{ color: "white", marginLeft: -3, marginTop: -3 }}
             />
           </div>
         )}
         {!checked && (
           <div
             style={{
-              border: '1px solid white',
+              border: "1px solid white",
               borderRadius: size / 2,
               width: size,
               height: size,

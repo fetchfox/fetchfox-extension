@@ -1,9 +1,5 @@
-import { useMemo, useEffect, useState, useRef } from 'react';
-import {
-  getJob,
-  getActiveJob,
-} from '../lib/store';
-import { findPagination } from '../lib/gather';
+import { useEffect, useRef, useState } from "react";
+import { findPagination } from "../lib/gather";
 
 export const usePagination = (page) => {
   const [loading, setLoading] = useState(true);
@@ -13,6 +9,8 @@ export const usePagination = (page) => {
   const cacheRef = useRef(new Map());
 
   useEffect(() => {
+    console.log("what the fuck is happening", page?.url);
+
     if (!page?.url) return;
 
     setLoading(true);
@@ -20,9 +18,9 @@ export const usePagination = (page) => {
       cacheRef.current.set(page.url, result);
       setLoading(false);
       setDidInit(true);
-      setLinks(result)
+      setLinks(result);
     });
   }, [page?.url]);
 
   return { loading, didInit, links };
-}
+};

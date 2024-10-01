@@ -1,22 +1,22 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import Popup from './Popup';
-import './index.css';
-import Browser from 'webextension-polyfill';
-import { initSentry } from '../../lib/errors';
-import { sendToBackground } from '@plasmohq/messaging';
+import React from "react";
+import { createRoot } from "react-dom/client";
+import Popup from "./Popup";
+import "./index.css";
+import { webExtension } from "~old/src/lib/browser";
+import { initSentry } from "../../lib/errors";
+import { sendToBackground } from "@plasmohq/messaging";
 
 initSentry();
 
 (() => {
-  const devMode = !('update_url' in Browser.runtime.getManifest());
+  const devMode = !("update_url" in chrome.runtime.getManifest());
   if (devMode) return;
 
-  for (const key of ['log', 'warn', 'error']) {
+  for (const key of ["log", "warn", "error"]) {
     const original = console[key];
     console[key] = (...args) => {
       sendToBackground({
-        name: 'console',
+        name: "console",
         body: {
           key,
           args,
@@ -27,7 +27,7 @@ initSentry();
   }
 })();
 
-const container = document.getElementById('app-container');
+const container = document.getElementById("app-container");
 const root = createRoot(container);
 root.render(
   <div className="App">
