@@ -93,7 +93,7 @@ const getPageDataIteration = async (url, options) => {
     const listener = Browser.webNavigation.onErrorOccurred.addListener(
       (details) => {
         if (details.tabId === tab.id) {
-          if (details.frameType == "outermost_frame") {
+          if (details.frameType === "outermost_frame") {
             error = details;
             ok("error");
           }
@@ -110,7 +110,7 @@ const getPageDataIteration = async (url, options) => {
 
   const pageLoad = new Promise((ok, bad) => {
     const listener = Browser.tabs.onUpdated.addListener((tabId, info) => {
-      if (tabId == tab.id && info.status == "complete") {
+      if (tabId === tab.id && info.status === "complete") {
         Browser.tabs.onUpdated.removeListener(listener);
         ok("ok");
       }
@@ -189,11 +189,7 @@ export const getTabData = async (tabId, options) => {
     }
     console.log("sleep args", tabId, args);
 
-    const frames = await new Promise((ok) => {
-      Browser.webNavigation.getAllFrames({ tabId }, (frames) => {
-        ok(frames);
-      });
-    });
+    const frames = await Browser.webNavigation.getAllFrames({ tabId });
 
     console.log("Got all frames:", tabId, frames);
     for (const frame of frames || []) {
@@ -246,27 +242,19 @@ export const getTabData = async (tabId, options) => {
 };
 
 export const getActiveTab = async () => {
-  return new Promise((ok) => {
-    Browser.tabs.query({ active: true, currentWindow: true }, (tabs) =>
-      ok(tabs[0] ? tabs[0] : null)
-    );
-  });
+  const tabs = await Browser.tabs.query({ active: true, currentWindow: true });
+  return tabs[0] || null;
 };
 
 export const getTabWithUrl = async (url) => {
   let u = new URL(url);
   // Query without hash
   const noHash = url.replace(u.hash, "");
-  return new Promise((ok) => {
-    Browser.tabs.query({ url: noHash }, (tabs) => {
-      console.log("lll got tabs after query", url, tabs);
-      // Check for hash match
-      for (let tab of tabs || []) {
-        if (tab.url == url) ok(tab);
-      }
-      ok(null);
-    });
-  });
+
+  const tabs = await Browser.tabs.query({ url: noHash });
+
+  console.log("lll got tabs after query", url, tabs);
+  return (tabs || []).find((it) => it.url === url);
 };
 
 export const reportSleep = async (url, msec) => {
@@ -384,7 +372,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         const els = clone.querySelectorAll("*");
         els.forEach((el) => {
           const style = window.getComputedStyle(el);
-          if (style.display == "none") el.remove();
+          if (style.display === "none") el.remove();
         });
 
         return clone.outerHTML;
@@ -407,7 +395,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
           },
         });
 
-        if (resp.answer?.status == "done" || resp.status == "error") {
+        if (resp.answer?.status === "done" || resp.status === "error") {
           console.log("== checkLoading done! break ==");
 
           if (i > 0) {
@@ -431,7 +419,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         console.log("== checkLoading waiting ==");
         await sleep(dynamicSleep);
 
-        if (i + 1 == maxDynamicWaits) {
+        if (i + 1 === maxDynamicWaits) {
           sendToBackground({
             name: "setStatus",
             body: {
@@ -460,14 +448,14 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
 
       // Special case Archive.org redirects
       if (
-        url.indexOf("https://web.archive.org") == 0 &&
+        url.indexOf("https://web.archive.org") === 0 &&
         text.match(/Got an HTTP 30[0-9] response at crawl time/)
       ) {
         console.log("archive org redir, find url");
         const m = html.match(/<p class="impatient"><a href="([^"]+)"/);
         if (m) {
           let redir = m[1];
-          if (redir[0] == "/") {
+          if (redir[0] === "/") {
             redir = "https://web.archive.org" + redir;
           }
           console.log("archive org redir", redir);
@@ -495,7 +483,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
 };
 
 const checkIfPdf = async (url) => {
-  if (url.indexOf(apiHost) == -1 && url.toLowerCase().endsWith(".pdf")) {
+  if (url.indexOf(apiHost) === -1 && url.toLowerCase().endsWith(".pdf")) {
     return true;
   }
 

@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useOpenAiKey, useOpenAiModels, useQuota } from '../../state/openai';
-import { setKey } from '../../lib/store';
-import { Error } from '../common/Error';
-import { FoxSays } from '../fox/FoxSays';
-import { IoIosCheckmarkCircle, IoIosCircle } from 'react-icons/io';
-import { FiCircle, FiCheckCircle } from 'react-icons/fi';
-import { RiErrorWarningFill } from 'react-icons/ri';
-import { mainColor } from '../../lib/constants';
+import React, { useState, useEffect } from "react";
+import { useOpenAiKey, useOpenAiModels, useQuota } from "../../state/openai";
+import { setKey } from "../../lib/store";
+import { Error } from "../common/Error";
+import { FoxSays } from "../fox/FoxSays";
+import { IoIosCheckmarkCircle, IoIosCircle } from "react-icons/io";
+import { FiCircle, FiCheckCircle } from "react-icons/fi";
+import { RiErrorWarningFill } from "react-icons/ri";
+import { mainColor } from "../../lib/constants";
 
 const QuotaError = () => {
   const quota = useQuota();
@@ -14,32 +14,32 @@ const QuotaError = () => {
   if (quota.ok) return null;
 
   return (
-    <div style={{ color: 'white' }}>
+    <div style={{ color: "white" }}>
       <div
         style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          flexDirection: 'column',
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          flexDirection: "column",
           padding: 10,
           fontSize: 14,
-          lineHeight: '18px',
+          lineHeight: "18px",
           borderRadius: 8,
-          background: '#fff9db',
-          border: '1px solid #ffe066',
-          color: '#8b6508',
+          background: "#fff9db",
+          border: "1px solid #ffe066",
+          color: "#8b6508",
           zIndex: 50,
         }}
       >
         <b
           style={{
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             gap: 5,
             fontSize: 18,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
             <RiErrorWarningFill size={24} />
           </div>
           <div>You are out of OpenAI credits</div>
@@ -48,11 +48,11 @@ const QuotaError = () => {
           You won't be able to use FetchFox until you add more credits. You can
           do so by visiting OpenAI's billing dashboard:
         </p>
-        <div style={{ margin: 10, textAlign: 'center' }}>
+        <div style={{ margin: 10, textAlign: "center" }}>
           <a
             href="https://platform.openai.com/settings/organization/billing/overview"
             className="clickable"
-            style={{ color: '#8b6508' }}
+            style={{ color: "#8b6508" }}
             target="_blank"
           >
             Visit OpenAI Billing Page
@@ -76,7 +76,7 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
 
   useEffect(() => {
     setDisabled(
-      !quota?.ok || !openAiPlan || (openAiPlan == 'openai' && !openAiKey)
+      !quota?.ok || !openAiPlan || (openAiPlan === "openai" && !openAiKey)
     );
   }, [openAiKey, openAiPlan, quota?.ok]);
 
@@ -91,33 +91,33 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
   const handleOpenAi = (e) => {
     e.preventDefault();
     setError(null);
-    setKey('openAiPlan', 'openai');
-    setKey('openAiKey', apiKey);
-    setKey('model', modelName);
+    setKey("openAiPlan", "openai");
+    setKey("openAiKey", apiKey);
+    setKey("model", modelName);
     setTimeout(() => setSuccess(false), 3000);
   };
 
   const handleFree = (e) => {
     e.preventDefault();
     setError(null);
-    setKey('openAiPlan', 'free');
+    setKey("openAiPlan", "free");
     setTimeout(() => setSuccess(false), 3000);
   };
 
   const handleChange = (e) => {
     setError(null);
     setApiKey(e.target.value);
-    setKey('openAiKey', e.target.value);
+    setKey("openAiKey", e.target.value);
   };
 
   const handleChangeModel = (e) => {
     setModelName(e.target.value);
-    setKey('model', e.target.value);
+    setKey("model", e.target.value);
   };
 
   const handleDone = () => {
-    if (openAiPlan == 'openai' && !openAiKey) {
-      setError('Enter your API key');
+    if (openAiPlan === "openai" && !openAiKey) {
+      setError("Enter your API key");
       return;
     }
     onDone();
@@ -126,37 +126,37 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
   const wrapperStyle = {
     borderRadius: 4,
     padding: 20,
-    background: '#fff0',
-    margin: '20px 0',
-    border: '2px solid transparent',
+    background: "#fff0",
+    margin: "20px 0",
+    border: "2px solid transparent",
   };
 
   const wrapperActiveStyle = {
-    border: '2px solid #fffa',
-    background: '#fff2',
+    border: "2px solid #fffa",
+    background: "#fff2",
   };
 
   const titleStyle = {
     fontSize: 18,
     opacity: 0.8,
-    fontVariantCaps: 'small-caps',
+    fontVariantCaps: "small-caps",
   };
 
   const subtitleStyle = {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   };
 
   const pickModelNode = (
     <div>
-      <div style={{ fontSize: 14, fontWeight: 'bold', margin: '10px 0' }}>
+      <div style={{ fontSize: 14, fontWeight: "bold", margin: "10px 0" }}>
         Pick a model
       </div>
       <select value={modelName} onChange={handleChangeModel}>
         {models.available.map((a) => (
           <option key={a} value={a}>
             {a}
-            {a == models.available[0] && <span> (recommended)</span>}
+            {a === models.available[0] && <span> (recommended)</span>}
           </option>
         ))}
       </select>
@@ -172,7 +172,7 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
       <div
         style={{
           ...wrapperStyle,
-          ...(openAiPlan == 'openai' ? wrapperActiveStyle : {}),
+          ...(openAiPlan === "openai" ? wrapperActiveStyle : {}),
         }}
       >
         <div></div>
@@ -191,9 +191,9 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
             <div>
               <a
                 className={`btn ${
-                  openAiKey ? 'btn-gray' : 'btn-primary'
+                  openAiKey ? "btn-gray" : "btn-primary"
                 } clickable`}
-                style={{ display: 'inline-block', marginBottom: 10 }}
+                style={{ display: "inline-block", marginBottom: 10 }}
                 href="https://platform.openai.com/api-keys"
                 target="_blank"
               >
@@ -201,13 +201,13 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
               </a>
             </div>
 
-            <div style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: "bold", marginBottom: 10 }}>
               Enter your OpenAI key
             </div>
             <form onSubmit={handleOpenAi}>
               <input
-                className={error ? 'error' : ''}
-                style={{ width: '100%' }}
+                className={error ? "error" : ""}
+                style={{ width: "100%" }}
                 type="text"
                 value={apiKey}
                 onChange={handleChange}
@@ -219,37 +219,37 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
               <div
                 style={{
                   marginTop: 20,
-                  display: 'flex',
-                  alignItems: 'center',
+                  display: "flex",
+                  alignItems: "center",
                   gap: 10,
                 }}
               >
                 <button
                   className="btn btn-gray btn-lg"
                   style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    flexDirection: 'row',
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    flexDirection: "row",
                     gap: 10,
                   }}
                   type="submit"
                 >
                   <div
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      flexDirection: 'row',
+                      display: "flex",
+                      alignItems: "center",
+                      flexDirection: "row",
                     }}
                   >
-                    {openAiPlan == 'openai' && (
-                      <FiCheckCircle style={{ color: 'white' }} size={24} />
+                    {openAiPlan === "openai" && (
+                      <FiCheckCircle style={{ color: "white" }} size={24} />
                     )}
-                    {openAiPlan != 'openai' && (
-                      <FiCircle style={{ color: 'white' }} size={24} />
+                    {openAiPlan != "openai" && (
+                      <FiCircle style={{ color: "white" }} size={24} />
                     )}
                   </div>
-                  <div style={{ widthx: '100%' }}>Use Free Forever</div>
+                  <div style={{ widthx: "100%" }}>Use Free Forever</div>
                 </button>
               </div>
             </form>
@@ -260,7 +260,7 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
       <div
         style={{
           ...wrapperStyle,
-          ...(openAiPlan == 'free' ? wrapperActiveStyle : {}),
+          ...(openAiPlan === "free" ? wrapperActiveStyle : {}),
         }}
       >
         <div></div>
@@ -276,34 +276,34 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
             </p>
 
             <div
-              style={{ marginTop: 20, display: 'flex', alignItems: 'center' }}
+              style={{ marginTop: 20, display: "flex", alignItems: "center" }}
             >
               <button
                 className="btn btn-gray btn-lg"
                 style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  flexDirection: 'row',
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  flexDirection: "row",
                   gap: 10,
                 }}
                 onClick={handleFree}
               >
                 <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    flexDirection: 'row',
+                    display: "flex",
+                    alignItems: "center",
+                    flexDirection: "row",
                   }}
                 >
-                  {openAiPlan == 'free' && (
-                    <FiCheckCircle style={{ color: 'white' }} size={24} />
+                  {openAiPlan === "free" && (
+                    <FiCheckCircle style={{ color: "white" }} size={24} />
                   )}
-                  {openAiPlan != 'free' && (
-                    <FiCircle style={{ color: 'white' }} size={24} />
+                  {openAiPlan != "free" && (
+                    <FiCircle style={{ color: "white" }} size={24} />
                   )}
                 </div>
-                <div style={{ widthx: '100%' }}>Use Free...For Now</div>
+                <div style={{ widthx: "100%" }}>Use Free...For Now</div>
               </button>
             </div>
           </div>
@@ -312,22 +312,22 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
         {!disabled && (
           <div
             style={{
-              position: 'fixed',
+              position: "fixed",
               bottom: 0,
               left: 0,
-              width: '100vw',
+              width: "100vw",
               padding: 8,
               paddingBottom: 26,
-              background: '#282c34',
+              background: "#282c34",
             }}
           >
             <button
               className="btn btn-primary btn-lg"
-              style={{ width: '100%' }}
+              style={{ width: "100%" }}
               onClick={handleDone}
               disabled={disabled}
             >
-              {doneText || 'Done'}
+              {doneText || "Done"}
             </button>
           </div>
         )}

@@ -16,7 +16,7 @@ export const getRoundId = async () => {
 };
 
 export const isActive = async (r) => {
-  return r == (await getRoundId());
+  return r === (await getRoundId());
 };
 
 export const addListener = async (f) => {
@@ -27,7 +27,7 @@ export const addListener = async (f) => {
 
 export const removeListener = async (f) => {
   const index = listeners.indexOf(f);
-  if (index == -1) return;
+  if (index === -1) return;
   listeners.splice(index, 1);
 };
 

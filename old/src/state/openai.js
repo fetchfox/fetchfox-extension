@@ -41,7 +41,7 @@ export const useQuota = () => {
     if (!openaiKey) return;
     if (!models?.model) return;
 
-    if (openaiPlan == "free") {
+    if (openaiPlan === "free") {
       setQuota({ credits: 1, ok: true });
       return;
     }
@@ -62,7 +62,7 @@ export const useQuota = () => {
         setQuota({ credits: 1, ok: true });
       })
       .catch((err) => {
-        if (err.code == "insufficient_quota") {
+        if (err.code === "insufficient_quota") {
           setQuota({ credits: 0, error: err, ok: false });
         } else {
           setQuota({ error: err, ok: false });

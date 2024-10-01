@@ -1,7 +1,5 @@
 import Browser from "webextension-polyfill";
 
-import "../old/src/pages/Background";
-
 import icon34 from "data-base64:~assets/icon-34.png";
 import { storage } from "../lib/storage";
 import { initSentry } from "../old/src/lib/errors";
@@ -9,17 +7,19 @@ import { saveConsole } from "./messages/console";
 
 initSentry();
 
+console.log("background script installed");
+
 let iconInterval;
 
 storage.watch({
   inFlight: (c) => {
-    if (c.newValue == 0) {
+    if (c.newValue === 0) {
       if (iconInterval) {
         clearInterval(iconInterval);
         iconInterval = null;
       }
       Browser.action.setIcon({ path: icon34 });
-    } else if (iconInterval == null) {
+    } else if (iconInterval === null) {
       const context = new OffscreenCanvas(100, 100).getContext("2d");
       if (!context) return;
 
@@ -56,13 +56,13 @@ function installConsoleHooks() {
   const devMode = !("update_url" in Browser.runtime.getManifest());
   if (devMode) return;
 
-  for (const key of ["log", "warn", "error"]) {
+  ["log", "warn", "error"].forEach((key) => {
     const original = console[key];
     console[key] = (...args) => {
       original(...args);
       saveConsole(key, args);
     };
-  }
+  });
 }
 
 installConsoleHooks();

@@ -32,7 +32,7 @@ export async function exec(name, args, cb, modelOverride) {
   let answer;
   let askAI;
 
-  if (plan == "free") {
+  if (plan === "free") {
     console.log("AI using Free");
 
     // Run via mirror API
@@ -92,12 +92,12 @@ export async function exec(name, args, cb, modelOverride) {
       console.error("AI error:", e);
       console.log("AI error retries left:", retries);
 
-      if (e.code == "insufficient_quota") {
+      if (e.code === "insufficient_quota") {
         setGlobalError(
           "You have no OpenAI quota. Add credits, or switch to the FetchFox backend."
         );
         return;
-      } else if (e.code == "rate_limit_exceeded" && retries > 0) {
+      } else if (e.code === "rate_limit_exceeded" && retries > 0) {
         observedRateLimit *= 0.9;
         console.log(
           "Query rate limit hit, set new observedRateLimit:",
@@ -105,8 +105,8 @@ export async function exec(name, args, cb, modelOverride) {
         );
         hitRateLimit = true;
       } else if (
-        e.code == "rate_limit_exceeded" &&
-        plan == "free" &&
+        e.code === "rate_limit_exceeded" &&
+        plan === "free" &&
         retries <= 0
       ) {
         console.error("Too many errors, giving up on AI query");

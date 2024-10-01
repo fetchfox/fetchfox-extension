@@ -115,7 +115,7 @@ export const setScrapeStatus = async (jobId, roundId, urls, val) => {
       if (urls.includes(target.url)) {
         target.status = val;
         target.roundId = roundId;
-        target.loading = target.status == "scraping";
+        target.loading = target.status === "scraping";
       }
     }
 

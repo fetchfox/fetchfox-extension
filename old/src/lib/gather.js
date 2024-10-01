@@ -1,43 +1,42 @@
-import { stream, exec } from './ai';
-import { sleep, shuffle } from './util';
+import { stream, exec } from "./ai";
+import { sleep, shuffle } from "./util";
 import {
   getRoundId,
   isActive,
   addListener,
   removeListener,
-} from './controller';
-import { getActiveJob, setJobResults, setStatus } from './store';
-import { getCache, setCache } from './cache';
-import { gatherTemplate } from './templates';
-
+} from "./controller";
+import { getActiveJob, setJobResults, setStatus } from "./store";
+import { getCache, setCache } from "./cache";
+import { gatherTemplate } from "./templates";
 
 export const cleanLinks = (l) => {
   const clean = [];
-  const seen = {};    
-  console.log('clean links:', l);
+  const seen = {};
+  console.log("clean links:", l);
   for (let item of l) {
     if (!item.url) {
-      console.warn('got invalid link:', item);
+      console.warn("got invalid link:", item);
       continue;
     }
 
     // De-dupe anchors for now. May want to revisit this later.
-    item.url = item.url.split('#')[0];
+    item.url = item.url.split("#")[0];
     clean.push(item);
   }
   return clean;
-}
+};
 
 export const dedupeLinks = (l) => {
   const u = [];
-  const seen = {};    
+  const seen = {};
   for (let item of cleanLinks(l)) {
     if (seen[item.url]) continue;
     seen[item.url] = true;
     u.push(item);
   }
   return u;
-}
+};
 
 const chunkList = (list, maxBytes) => {
   const chunks = [];
@@ -55,7 +54,7 @@ const chunkList = (list, maxBytes) => {
   return chunks;
 };
 
-const slimmer = item => ({
+const slimmer = (item) => ({
   id: item.id,
   html: item.html.substr(0, 200),
   text: item.text,
@@ -63,16 +62,16 @@ const slimmer = item => ({
 });
 
 const expander = (page, item) => {
-  const m = page.links.filter(x => x.id == item.id);
+  const m = page.links.filter((x) => x.id === item.id);
   return m.length > 0 ? m[0] : item;
-}
+};
 
 export const findPagination = async (page) => {
   const roundId = await getRoundId();
 
-  const cached = await getCache('pagination', [page.url]);
+  const cached = await getCache("pagination", [page.url]);
   if (cached) {
-    console.log('pagination found cached', cached);
+    console.log("pagination found cached", cached);
     return cached;
   }
 
@@ -102,11 +101,11 @@ export const findPagination = async (page) => {
   const links = JSON.parse(JSON.stringify(page.links));
   links.sort((a, b) => {
     const [la, lb] = [likelyPagintion(a.url), likelyPagintion(b.url)];
-    if (la && lb || (!la && !lb)) return 0;
+    if ((la && lb) || (!la && !lb)) return 0;
     if (la) return -1;
     if (lb) return 1;
   });
-  console.log('pagination sorted links:', links);
+  console.log("pagination sorted links:", links);
 
   const limit = 10000;
   const chunked = chunkList(links.map(slimmer), limit);
@@ -117,17 +116,17 @@ export const findPagination = async (page) => {
   const max = Math.min(4, chunked.length);
 
   for (let i = 0; i < max; i++) {
-    if (!await isActive(roundId)) break;
+    if (!(await isActive(roundId))) break;
     const chunk = chunked[i];
-    console.log('find pagination from chunk:', chunk);
+    console.log("find pagination from chunk:", chunk);
 
-    const answer = await exec(
-      'pagination',
-      { list: JSON.stringify(chunk.map(slimmer), null, 2) });
+    const answer = await exec("pagination", {
+      list: JSON.stringify(chunk.map(slimmer), null, 2),
+    });
 
-    console.log('ai pagination gave answer:', answer);
+    console.log("ai pagination gave answer:", answer);
 
-    if (answer.hasPagination != 'yes') continue;
+    if (answer.hasPagination != "yes") continue;
 
     if (answer.pageLinks) {
       for (const l of answer.pageLinks) {
@@ -146,17 +145,19 @@ export const findPagination = async (page) => {
 
   if (pages.length > 0) {
     // Run it again to check for dupes, etc.
-    const answer = await exec(
-      'pagination',
-      { list: JSON.stringify(pages.slice(0, 50).map(slimmer), null, 2) });
+    const answer = await exec("pagination", {
+      list: JSON.stringify(pages.slice(0, 50).map(slimmer), null, 2),
+    });
 
     pages = [];
-    for (const l of (answer.pageLinks || [])) {
+    for (const l of answer.pageLinks || []) {
       const expanded = expander(page, l);
       expanded.pageNumber = l.pageNumber;
       pages.push(expanded);
     }
-    pages.sort((a, b) => (parseInt(a.pageNumber) || 99) - (parseInt(b.pageNumber) || 99));
+    pages.sort(
+      (a, b) => (parseInt(a.pageNumber) || 99) - (parseInt(b.pageNumber) || 99)
+    );
     pages.unshift({ url: page.url, pageNumber: 0 });
   }
 
@@ -175,9 +176,9 @@ export const findPagination = async (page) => {
   // }
 
   const result = { pages: pages.slice(0, 20), next: next[0] };
-  setCache('pagination', [page.url], result);
+  setCache("pagination", [page.url], result);
   return result;
-}
+};
 
 export const parseLinks = async (page, question, cb, templateName) => {
   const roundId = await getRoundId();
@@ -189,23 +190,22 @@ export const parseLinks = async (page, question, cb, templateName) => {
   let matches = [];
 
   for (let i = 0; i < chunked.length; i++) {
-    if (!await isActive(roundId)) break;
+    if (!(await isActive(roundId))) break;
     const chunk = chunked[i];
 
-    const answer = (await exec(
-      'gather',
-      {
+    const answer =
+      (await exec("gather", {
         question,
         list: JSON.stringify(chunk.map(slimmer), null, 2),
       })) || [];
 
-    const expanded = answer.map(item => expander(page, item));
-    if (!await isActive(roundId)) return [];
+    const expanded = answer.map((item) => expander(page, item));
+    if (!(await isActive(roundId))) return [];
     matches = dedupeLinks(matches.concat(expanded));
     if (cb) cb(cleanLinks(matches), i / chunked.length);
 
-    await setStatus(`Crawl stage working, ${i+1}/${chunked.length} chunks`);
+    await setStatus(`Crawl stage working, ${i + 1}/${chunked.length} chunks`);
   }
 
   return dedupeLinks(matches);
-}
+};

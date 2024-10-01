@@ -69,7 +69,7 @@ const maybeOpenPanel = async (job) => {
   let shouldOpen = true;
 
   if (!(job.scrape?.concurrency < 0)) shouldOpen = false;
-  if (job.urls?.action == "current") shouldOpen = false;
+  if (job.urls?.action === "current") shouldOpen = false;
   if (job.urls?.pagination?.follow) shouldOpen = true;
 
   if (shouldOpen) openPanel();
@@ -77,12 +77,12 @@ const maybeOpenPanel = async (job) => {
 
 const openPanel = async () => {
   const activeTab = await getActiveTab();
-  Browser.sidePanel.open({ windowId: activeTab.windowId }, () => {
-    // TODO: remove need for setTimeout
-    setTimeout(() => {
-      window.close();
-    }, 50);
-  });
+  await Browser.sidePanel.open({ windowId: activeTab.windowId });
+
+  // TODO: remove need for setTimeout
+  setTimeout(() => {
+    window.close();
+  }, 50);
 };
 
 const StatusBar = ({ onRun }) => {
@@ -282,10 +282,10 @@ const UrlsStep = ({ job, isPopup }) => {
       setCurrentUrl(activeTab.url);
       setTab(action);
 
-      if (action == "gather") {
+      if (action === "gather") {
         const exists = !(url || "").split("\n").includes(activeTab.url);
         setShowCurrentButton(exists);
-      } else if (action == "manual") {
+      } else if (action === "manual") {
         const exists = !(manualUrls || "").split("\n").includes(activeTab.url);
         setShowCurrentButton(exists);
       }
@@ -299,7 +299,7 @@ const UrlsStep = ({ job, isPopup }) => {
   };
 
   const numResults = (job?.results?.targets || []).length;
-  const currentStep = numResults == 0 ? 1 : 2;
+  const currentStep = numResults === 0 ? 1 : 2;
 
   const updateJob = (field, val, setter) => {
     setter(val);
@@ -360,10 +360,10 @@ const UrlsStep = ({ job, isPopup }) => {
   const handleCurrent = async () => {
     const activeTab = await getActiveTab();
     if (activeTab) {
-      if (action == "gather") {
+      if (action === "gather") {
         // updateUrl(activeTab.url + '\n' + url);
         updateUrl(activeTab.url);
-      } else if (action == "manual") {
+      } else if (action === "manual") {
         // updateManualUrls(activeTab.url + '\n' + manualUrls);
         updateManualUrls(activeTab.url);
       }
@@ -377,12 +377,12 @@ const UrlsStep = ({ job, isPopup }) => {
       await maybeOpenPanel(job);
     }
 
-    if (action == "gather") {
+    if (action === "gather") {
       runGather(job);
       if (job.urls.shouldClear) {
         updateShouldClear(false);
       }
-    } else if (action == "manual") {
+    } else if (action === "manual") {
       if (!checkManualUrls(manualUrls, false)) return;
       const add = cleanManualUrls(manualUrls);
       console.log("add these urls manually:", add);
@@ -396,7 +396,7 @@ const UrlsStep = ({ job, isPopup }) => {
   const questionNode = (
     <div>
       <p>
-        What kinds of {action == "gather" ? "links" : "items"} should we look
+        What kinds of {action === "gather" ? "links" : "items"} should we look
         for?
       </p>
       <Textarea
@@ -557,9 +557,9 @@ https://www.example.com/page-2
         <div key="manual">Manually Enter URLs</div>
       </Pills>
 
-      {action == "current" && currentNode}
-      {action == "gather" && gatherNode}
-      {action == "manual" && manualNode}
+      {action === "current" && currentNode}
+      {action === "gather" && gatherNode}
+      {action === "manual" && manualNode}
 
       <Error message={error} />
     </div>
@@ -572,7 +572,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
   const [sleepTime, setSleepTime] = useState();
 
   const numResults = (job?.results?.targets || []).length;
-  const currentStep = numResults == 0 ? 1 : 2;
+  const currentStep = numResults === 0 ? 1 : 2;
   const autoSleepTime = useAutoSleepTime();
 
   console.log("autoSleepTime", autoSleepTime);
@@ -599,7 +599,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
 
     let hasScraped = false;
     for (const target of job?.results?.targets || []) {
-      hasScraped = target.status == "scraped";
+      hasScraped = target.status === "scraped";
       if (hasScraped) break;
     }
 
@@ -608,7 +608,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
     timeoutRef.current = setTimeout(async () => {
       if (hasScraped) {
         await setJobField(job.id, "scrape", updated);
-        if (field == "questions") {
+        if (field === "questions") {
           setScrapeStatus(
             job.id,
             await getRoundId(),
@@ -733,7 +733,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
       .filter((t) => t.status != "scraped")
       .map((t) => t.url);
 
-    if (urls.length == 0) {
+    if (urls.length === 0) {
       urls = job.results.targets.map((t) => t.url);
     }
 
@@ -748,7 +748,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
     <div style={stepStyle}>
       <div style={stepHeaderStyle}>
         What do you want to scrape on{" "}
-        {job.urls?.action == "current" ? "this" : "each"} page?
+        {job.urls?.action === "current" ? "this" : "each"} page?
       </div>
       {nodes}
 
@@ -768,7 +768,7 @@ const ScrapeStep = ({ job, isPopup, onChange, onClick }) => {
 
       {["gather", "manual"].includes(job.urls?.action) && controlsNode}
 
-      {job.urls.action == "gather" && (
+      {job.urls.action === "gather" && (
         <div style={{ marginTop: 10 }}>
           <button
             className={"btn btn-gray btn-md"}
@@ -839,16 +839,20 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
 
   const instructionStyle = {
     textAlign: "center",
-    marginTop: jobs.length == 0 ? 40 : 20,
+    marginTop: jobs.length === 0 ? 40 : 20,
   };
 
   const handleExample = async (e, prompt, url) => {
     await setPrompt(prompt);
     await setUrl(url);
     const resp = await handleSubmit(e, prompt, url);
-    Browser.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      Browser.tabs.update(tabs[0].id, { url });
+
+    const tabs = await Browser.tabs.query({
+      active: true,
+      currentWindow: true,
     });
+
+    Browser.tabs.update(tabs[0].id, { url });
 
     if (isPopup) {
       openPanel();
@@ -1085,9 +1089,9 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
     runJob(job);
   };
 
-  const currentStep = (job?.results?.targets || []).length == 0 ? 1 : 2;
+  const currentStep = (job?.results?.targets || []).length === 0 ? 1 : 2;
   const noAnswers =
-    (job?.results?.targets || []).filter((r) => !!r.answer).length == 0;
+    (job?.results?.targets || []).filter((r) => !!r.answer).length === 0;
 
   const controlsNode = (
     <div>
@@ -1218,9 +1222,9 @@ export const Scrape = ({ isPopup }) => {
 
     if (loadingOpenAiKey) return;
     setLoading(false);
-    if (step == "settings") return;
+    if (step === "settings") return;
 
-    if (!openAiPlan || (openAiPlan == "openai" && !openAiKey)) {
+    if (!openAiPlan || (openAiPlan === "openai" && !openAiKey)) {
       setStep("settings");
     } else {
       if (!step) setStep("welcome");
@@ -1243,7 +1247,7 @@ export const Scrape = ({ isPopup }) => {
         // Job is running, go to inner page
         setStep("inner");
         setLoading(false);
-      } else if (jobUrl && jobUrl.indexOf(tabHostname) == -1) {
+      } else if (jobUrl && jobUrl.indexOf(tabHostname) === -1) {
         // New domain, assume new job
         console.log("new domain, so change the step");
         setStep("welcome");
@@ -1259,14 +1263,29 @@ export const Scrape = ({ isPopup }) => {
 
   const handleSkip = async () => {
     if (!activeJob) {
-      handleStart(await genBlankJob());
+      console.log("handleSkip 1");
+      console.log("handleSkip 1.1");
+      try {
+        console.log("handleSkip 1.2");
+        const job = await genBlankJob();
+        console.log("handleSkip 1.25", job);
+        handleStart(job);
+        console.log("handleSkip 1.3");
+      } catch (err) {
+        console.log("fucking error", err);
+      } finally {
+        console.log("wtf?");
+      }
     } else {
+      console.log("handleSkip 2");
       await setKey("scrapeStep", "inner");
       setStep("inner");
     }
   };
 
   const handleStart = async (job) => {
+    console.log("handleStart", job);
+
     await saveJob(job);
     await setActiveJob(job.id);
     await setKey("scrapeStep", "inner");
@@ -1290,7 +1309,7 @@ export const Scrape = ({ isPopup }) => {
         <p>loadingOpenAiKey? {"" + loadingOpenAiKey}</p>
       </div>
     );
-  } else if (!quota.ok || step == "settings") {
+  } else if (!quota.ok || step === "settings") {
     body = (
       <div style={mainStyle}>
         <OpenAiKeyEntry
@@ -1300,7 +1319,7 @@ export const Scrape = ({ isPopup }) => {
         />
       </div>
     );
-  } else if (step == "welcome") {
+  } else if (step === "welcome") {
     body = (
       <Welcome isPopup={isPopup} onStart={handleStart} onSkip={handleSkip} />
     );
