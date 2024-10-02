@@ -242,7 +242,7 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
                     {openAiPlan === "openai" && (
                       <FiCheckCircle style={{ color: "white" }} size={24} />
                     )}
-                    {openAiPlan != "openai" && (
+                    {openAiPlan !== "openai" && (
                       <FiCircle style={{ color: "white" }} size={24} />
                     )}
                   </div>
@@ -296,7 +296,7 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
                   {openAiPlan === "free" && (
                     <FiCheckCircle style={{ color: "white" }} size={24} />
                   )}
-                  {openAiPlan != "free" && (
+                  {openAiPlan !== "free" && (
                     <FiCircle style={{ color: "white" }} size={24} />
                   )}
                 </div>

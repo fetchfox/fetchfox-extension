@@ -53,7 +53,7 @@ export const UrlsStep = ({ job, isPopup }) => {
   useEffect(() => {
     setError(null);
     console.log("mmm currentUrl", currentUrl);
-    if (currentUrl.indexOf("https://chromewebstore.google.com") != -1) {
+    if (currentUrl.indexOf("https://chromewebstore.google.com") !== -1) {
       setError("Due to Google policy, cannot scrape Chrome Extension Store");
     }
   }, [currentUrl]);
@@ -110,13 +110,13 @@ export const UrlsStep = ({ job, isPopup }) => {
     x
       .split("\n")
       .map((x) => x.trim())
-      .filter((x) => !!x && x != "");
+      .filter((x) => !!x && x !== "");
 
   const checkManualUrls = (val, skipShort) => {
     setManualError();
     for (const url of cleanManualUrls(val)) {
       if (skipShort && url.length < 8) continue;
-      if (url.indexOf("http://") != 0 && url.indexOf("https://") != 0) {
+      if (url.indexOf("http://") !== 0 && url.indexOf("https://") !== 0) {
         setManualError("URLs must start with http:// or https://");
         return false;
       }

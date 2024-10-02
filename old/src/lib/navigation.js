@@ -1,4 +1,4 @@
-import { sendPortMessage } from "~lib/extension";
+import { getPort } from "@plasmohq/messaging/port";
 import { closeTabIfExists, getTabUrl } from "./browser";
 import { apiHost } from "./constants";
 import {
@@ -171,7 +171,7 @@ export const getTabData = async (tabId, options) => {
       console.warn(`No URL found when trying to get tab data for ${tabId}`);
     }
 
-    if ((url || "").indexOf("https://chromewebstore.google.com/") != -1) {
+    if ((url || "").indexOf("https://chromewebstore.google.com/") !== -1) {
       error = "Due to Google policy, cannot scrape Chrome Extension Store";
       break;
     }
@@ -302,6 +302,29 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
   const defaultSleep = shouldCheckLoad ? 500 : sleepTime || 1500;
   const dynamicSleep = 2000;
 
+  // === utility functions; we can't import stuff from an injected function
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  // Previously, sendPortMessage was simply chrome.runtime.sendMessage, but since we
+  // switched to Plasmo we now need to call a function from Plasmo, which we can't do
+  // since you can't reference imported modules from an injected function.
+  //
+  // In the future we can solve this using a content script.
+
+  /*
+  const sendPortMessage = (portName, body) => {
+    return new Promise((resolve, reject) => {
+      const port = getPort(portName);
+      port.onMessage.addListener(resolve);
+      port.onDisconnect.addListener(() => reject("port disconnected"));
+      port.postMessage({ body });
+    });
+  };
+  */
+
+  // === the actual code
+
   // Max 15 seconds per page
   // TODO: test/ fix this
   const x = await Promise.any([
@@ -345,7 +368,7 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
         const removeTags = ["style", "path", "svg"];
         // Remove LinkedIn junk
         // TODO: more resilient solution
-        if (url.indexOf("https://www.linkedin.com") != -1) {
+        if (url.indexOf("https://www.linkedin.com") !== -1) {
           removeTags.push("code");
         }
 
@@ -383,7 +406,8 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
 
       const maxDynamicWaits = 1;
       let i;
-      for (i = 0; shouldCheckLoad & (i < maxDynamicWaits); i++) {
+      for (i = 0; shouldCheckLoad && i < maxDynamicWaits; i++) {
+        /*
         // Check if its loaded
         console.log("== check if loaded ==", { text, html });
 
@@ -398,28 +422,33 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
           }
           break;
         }
+        */
 
         // Page maybe not loaded... let's wait and try again
+        /*
         sendPortMessage("setStatus", {
           message: "Waiting for dynamic content on " + url,
         });
+        */
+
         console.log("== checkLoading waiting ==");
         await sleep(dynamicSleep);
 
+        /*
         if (i + 1 === maxDynamicWaits) {
           sendPortMessage("setStatus", {
             message: "Stop waiting for dynamic content on " + url,
           });
         }
+        */
 
         text = getText(document.body) || "";
         html = getHtml(document.body) || "";
       }
 
-      const took = new Date().getTime() - start;
-
       if (shouldCheckLoad) {
-        sendPortMessage("reportSleep", { url, msec: took });
+        // const took = new Date().getTime() - start;
+        // sendPortMessage("reportSleep", { url, msec: took });
       }
 
       console.log("check for redir", text);

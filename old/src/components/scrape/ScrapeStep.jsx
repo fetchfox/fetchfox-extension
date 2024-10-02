@@ -171,7 +171,7 @@ export const ScrapeStep = ({ job, isPopup }) => {
 
   const handleClick = async () => {
     let urls = job.results.targets
-      .filter((t) => t.status != "scraped")
+      .filter((t) => t.status !== "scraped")
       .map((t) => t.url);
 
     if (urls.length === 0) {

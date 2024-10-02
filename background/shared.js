@@ -1,7 +1,7 @@
 import { webExtension } from "~old/src/lib/browser";
 
 import { execPrompt } from "~old/src/lib/ai";
-import { getRoundId, isActive } from "~old/src/lib/controller";
+import { advanceRound, getRoundId, isActive } from "~old/src/lib/controller";
 import { cleanLinks, dedupeLinks, parseLinks } from "~old/src/lib/gather";
 import { getActiveTab, getPageData, getTabData } from "~old/src/lib/navigation";
 import { sendReport } from "~old/src/lib/report";
@@ -31,8 +31,8 @@ const runGetName = async (job) => {
 
 export const maybeNameJob = async (job) => {
   if (
-    job.name.indexOf("Untitled") != -1 ||
-    job.name.indexOf("undefined") != -1
+    job.name.indexOf("Untitled") !== -1 ||
+    job.name.indexOf("undefined") !== -1
   ) {
     const name = "" + (await runGetName(job));
 
@@ -122,7 +122,7 @@ export async function runJob(job, tabId) {
     const merged = [];
     const existing = job.results?.targets || [];
     const partialComplete =
-      existing.filter((x) => x.status != "scraped").length > 0;
+      existing.filter((x) => x.status !== "scraped").length > 0;
     for (const nt of newTargets) {
       const e = existing
         .filter((t) => t.url === nt.url)

@@ -132,7 +132,7 @@ export const findPagination = async (page) => {
 
     console.log("ai pagination gave answer:", answer);
 
-    if (answer.hasPagination != "yes") continue;
+    if (answer.hasPagination !== "yes") continue;
 
     if (answer.pageLinks) {
       for (const l of answer.pageLinks) {

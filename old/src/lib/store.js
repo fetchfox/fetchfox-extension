@@ -236,7 +236,7 @@ export const setJobResults = async (
           //   const val = target.answer[key];
           //   if (Array.isArray(val)) {
           //     target.answer[key] = val.join(', ');
-          //   } else if (typeof val != 'string') {
+          //   } else if (typeof val !== 'string') {
           //     target.answer[key] = JSON.stringify(val);
           //   }
           // }

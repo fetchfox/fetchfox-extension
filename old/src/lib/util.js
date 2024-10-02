@@ -1,5 +1,6 @@
 import JSON5 from "json5";
-export { sleep } from "radash";
+
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const shuffle = (a) => {
   for (let i = a.length - 1; i > 0; i--) {
@@ -23,7 +24,7 @@ export const splitUrls = (str) => {
   return str
     .split("\n")
     .map((x) => x.trim())
-    .filter((x) => !!x && x != "");
+    .filter((x) => !!x && x !== "");
 };
 
 export const parseJsonl = (str) => {
