@@ -9,19 +9,23 @@ function enqueue(fn) {
 }
 
 export async function getKey(key) {
-  return await storage.get(key);
+  const r = await storage.get(key);
+  console.log('getkey', key, r);
+  return r;
 }
 
 export function updateKey(key, fn) {
   return enqueue(async () => {
     const value = await getKey(key);
     const updated = await fn(value);
+    console.log('storage.set 1');
     await storage.set(key, updated);
   });
 }
 
 export function setKey(key, value) {
   return enqueue(async () => {
+    console.log('storage.set 2', key, value, storage);
     await storage.set(key, value);
   });
 }

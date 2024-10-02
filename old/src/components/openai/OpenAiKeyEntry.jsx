@@ -62,7 +62,11 @@ const QuotaError = () => {
 };
 
 export const OpenAiKeyEntry = ({ onDone, doneText }) => {
-  const { key: openAiKey, plan: openAiPlan } = useOpenAiKey();
+  const {
+    key: openAiKey,
+    plan: openAiPlan,
+    setPlan: setOpenAiPlan,
+  } = useOpenAiKey();
   const models = useOpenAiModels();
   const [apiKey, setApiKey] = useState();
   const [modelName, setModelName] = useState(models.model);
@@ -91,6 +95,9 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
     setKey("openAiPlan", "openai");
     setKey("openAiKey", apiKey);
     setKey("model", modelName);
+
+    // setOpenAiPlan('openai');
+
     setTimeout(() => setSuccess(false), 3000);
   };
 
@@ -165,6 +172,8 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
       <FoxSays message="How do you want to use FetchFox?" />
 
       <QuotaError />
+
+      openAiPlan:{openAiPlan}
 
       <div
         style={{

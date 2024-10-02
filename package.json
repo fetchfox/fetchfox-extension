@@ -5,7 +5,7 @@
   "description": "FetchFox lets you scrape any site for any data",
   "author": "FetchFox",
   "scripts": {
-    "dev": "plasmo dev",
+    "dev": "plasmo dev --verbose",
     "build": "plasmo build",
     "package": "plasmo package"
   },

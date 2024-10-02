@@ -9,7 +9,7 @@ import { useJobs } from "../../state/jobs";
 import { Loading } from "../common/Loading";
 import { FoxSays } from "../fox/FoxSays";
 import { InputPrompt } from "../prompt/InputPrompt";
-import { mainStyle } from "./shared";
+import { mainStyle, openPanel } from "./shared";
 
 export const Welcome = ({ isPopup, onStart, onSkip }) => {
   const [prompt, setPrompt] = useState("");
