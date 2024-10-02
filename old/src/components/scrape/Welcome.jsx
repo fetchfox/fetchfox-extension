@@ -137,8 +137,8 @@ export const Welcome = ({ isPopup, onStart, onSkip }) => {
         job = await genJobFromUrls(prompt, manualUrls.split("\n"));
       } else {
         const page = isActive ? await getTabData() : null;
-        if (page.error) {
-          setGlobalError(page.error);
+        if (page?.error) {
+          setGlobalError(page?.error);
           return;
         }
         job = await genJob(prompt, useUrl, page);
