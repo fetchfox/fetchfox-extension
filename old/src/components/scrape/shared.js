@@ -20,12 +20,17 @@ export const stepHeaderStyle = {
   marginBottom: 10,
 };
 
-const openPanel = async () => {
+export const openPanel = async () => {
   const activeTab = await getActiveTab();
-  await chrome.sidePanel.open({ windowId: activeTab.windowId });
+  chrome.sidePanel.setOptions({
+    tabId: activeTab.id,
+    path: 'sidepanel.html',
+    enabled: true,
+  });
+  await chrome.sidePanel.open({ tabId: activeTab.id });
 
   // TODO: remove need for setTimeout
-  setTimeout(() => window.close(), 50);
+  setTimeout(() => { window.close() }, 50);
 };
 
 export const maybeOpenPanel = async (job) => {

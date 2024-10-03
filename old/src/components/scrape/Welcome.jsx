@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocal } from "../../state/storage";
 import Textarea from "react-expanding-textarea";
 import { MdEditSquare } from "react-icons/md";
 import { setGlobalError } from "../../lib/errors";
@@ -18,6 +19,7 @@ export const Welcome = ({ isPopup, onStart, onSkip }) => {
   const [manual, setManual] = useState();
   const [manualUrls, setManualUrls] = useState("");
   const [disabled, setDisabled] = useState();
+  const [step, setStep] = useLocal('step');
   const jobs = useJobs();
 
   useEffect(() => {
@@ -73,17 +75,10 @@ export const Welcome = ({ isPopup, onStart, onSkip }) => {
     setPrompt(prompt);
     setUrl(url);
     await handleSubmit(e, prompt, url);
-
-    const tabs = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-
-    chrome.tabs.update(tabs[0].id, { url });
-
-    if (isPopup) {
-      openPanel();
-    }
+    await setStep('inner');
+    const activeTab = await getActiveTab();
+    chrome.tabs.update(activeTab.id, { url });
+    if (isPopup) openPanel();
   };
 
   let i = 0;

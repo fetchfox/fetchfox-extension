@@ -294,6 +294,7 @@ export const Scrape = ({ isPopup }) => {
 
     await saveJob(job);
     await setActiveJob(job.id);
+    return;
     await setKey("scrapeStep", "inner");
     await setStep("inner");
     setKey("masterPrompt", "");
@@ -314,10 +315,9 @@ export const Scrape = ({ isPopup }) => {
         <li>quota?.ok: {''+quota?.ok}</li>
       </ul>
 
-      STEP:{step}<br/>
-      AI READY?{JSON.stringify(ai)}<br/>
-      READY?{''+ready}<br/>
-      loadingOpenAiKey:{loadingOpenAiKey}
+      Step: {step}<br/>
+      Ai ready? {JSON.stringify(ai)}<br/>
+      Ready? {''+ready}<br/>
     </div>
   );
 
