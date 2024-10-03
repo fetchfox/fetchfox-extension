@@ -384,7 +384,6 @@ const injectFunction = async (sleepTime, shouldCheckLoad) => {
           clone.querySelectorAll(tagName).forEach((el) => {
             const val = el.getAttribute(attr) || "";
             if (val.length > cutoff) {
-              console.log("remove!!", tagName, attr, cutoff, val.length);
               el.setAttribute(attr, "");
             }
           });
