@@ -1,10 +1,10 @@
-import { useStorage } from "@plasmohq/storage/hook";
 import { useState } from "react";
 import { FaCircleStop } from "react-icons/fa6";
 import { bgColor, mainColor } from "../../lib/constants";
 import { advanceRound } from "../../lib/controller";
 import { sendStopMessage } from "../../lib/job";
 import { formatNumber } from "../../lib/util";
+import { useLocal } from "../../state/storage";
 import { useUsage } from "../../state/openai";
 import { Loading } from "../common/Loading";
 
@@ -13,11 +13,11 @@ export const StatusBar = ({ onRun }) => {
 
   console.log("Status bar usage:", usage);
 
-  const [status] = useStorage("status");
-  const [percent] = useStorage("percent");
-  const [completion] = useStorage("completion");
-  const [tpm] = useStorage("tpm");
-  const [inFlight] = useStorage("inFlight");
+  const [status] = useLocal("status");
+  const [percent] = useLocal("percent");
+  const [completion] = useLocal("completion");
+  const [tpm] = useLocal("tpm");
+  const [inFlight] = useLocal("inFlight");
 
   const message = status?.message ?? "";
   const busy = inFlight !== 0;

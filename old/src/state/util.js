@@ -1,11 +1,11 @@
-import { useStorage } from "@plasmohq/storage/hook";
+import { useLocal } from "./storage";
 import { sum } from "radash";
 import { useMemo } from "react";
 import { useActiveJob } from "./jobs";
 
 export const useAutoSleepTime = () => {
   const job = useActiveJob();
-  const [loadSleepTimes] = useStorage("loadSleepTimes");
+  const [loadSleepTimes] = useLocal("loadSleepTimes");
 
   return useMemo(() => {
     const times = (job?.results?.targets || [])

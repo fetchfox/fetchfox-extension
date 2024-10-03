@@ -1,7 +1,7 @@
 {
   "name": "fetchfox",
   "displayName": "Fetchfox",
-  "version": "0.0.1",
+  "version": "1.0.50",
   "description": "FetchFox lets you scrape any site for any data",
   "author": "FetchFox",
   "scripts": {

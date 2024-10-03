@@ -1,20 +1,14 @@
+import { useLocal } from "./storage";
 import { useMemo, useEffect, useState } from "react";
 import { getModel, getAvailableModels } from "../lib/ai";
 import { getKey } from "../lib/store";
 import { useRoundId } from "../lib/controller";
 import OpenAI from "openai";
-import { useStorage } from "@plasmohq/storage/hook";
 import { storage } from "../../../lib/extension";
 
 export const useOpenAiKey = () => {
-  const [key, , { isLoading: keyIsLoading }] = useStorage({
-    key: "openAiKey",
-    instance: storage,
-  });
-  const [plan, , { isLoading: planIsLoading }] = useStorage({
-    key: "openAiPlan",
-    instance: storage,
-  });
+  const [key, , { isLoading: keyIsLoading }] = useLocal("openAiKey");
+  const [plan, , { isLoading: planIsLoading }] = useLocal("openAiPlan");
   const loading = keyIsLoading || planIsLoading;
 
   return { key, plan, loading };
@@ -35,7 +29,7 @@ export const useOpenAiModels = () => {
 
 export const useUsage = () => {
   const roundId = useRoundId();
-  const [usage] = useStorage("roundUsage_" + roundId);
+  const [usage] = useLocal("roundUsage_" + roundId);
   return usage || {};
 };
 

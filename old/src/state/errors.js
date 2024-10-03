@@ -1,6 +1,6 @@
-import { useStorage } from "@plasmohq/storage/hook";
+import { useLocal } from "./storage";
 
 export function useGlobalError() {
-  const [globalError] = useStorage("globalError");
+  const [globalError] = useLocal("globalError");
   return globalError;
 }

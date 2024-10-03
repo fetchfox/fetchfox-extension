@@ -1,13 +1,12 @@
-import { useStorage } from "@plasmohq/storage/hook";
+import { useLocal } from "../state/storage";
 import { useEffect, useState } from "react";
 import { storage } from "~lib/extension";
 import { setKey, stopActiveJob, updateKey } from "./store";
-import { r0 } from "radash";
 
 let listeners = [];
 
 export const useRoundId = () => {
-  const [roundId] = useStorage("roundId");
+  const [roundId] = useLocal("roundId");
   return roundId;
 };
 

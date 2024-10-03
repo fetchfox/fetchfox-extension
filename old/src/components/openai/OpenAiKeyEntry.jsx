@@ -173,8 +173,6 @@ export const OpenAiKeyEntry = ({ onDone, doneText }) => {
 
       <QuotaError />
 
-      openAiPlan:{openAiPlan}
-
       <div
         style={{
           ...wrapperStyle,

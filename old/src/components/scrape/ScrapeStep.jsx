@@ -5,7 +5,7 @@ import { getRoundId } from "../../lib/controller";
 import { runScrape } from "../../lib/job";
 import { setJobField, setScrapeStatus } from "../../lib/store";
 import { useAutoSleepTime } from "../../state/util";
-import { stepHeaderStyle, stepStyle } from "./shared";
+import { stepHeaderStyle, stepStyle, maybeOpenPanel } from "./shared";
 
 export const ScrapeStep = ({ job, isPopup }) => {
   const [questions, setQuestions] = useState([""]);

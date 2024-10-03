@@ -39,12 +39,14 @@ const updateJob = async (jobId, fn) => {
 };
 
 export async function nextId() {
-  let ret = 0;
+  let ret = 1;
 
   await updateKey("nextId", (nextId) => {
-    ret = nextId ?? 0;
+    ret = nextId ?? 1;
     return ret + 1;
   });
+
+  console.log('Returning nextId:', ret);
 
   return ret;
 }

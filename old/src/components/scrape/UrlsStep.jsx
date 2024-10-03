@@ -7,7 +7,7 @@ import { Error } from "../common/Error";
 import { Pills } from "../common/Pills";
 import { Pagination } from "../pagination/Pagination";
 import { PerPage } from "../perpage/PerPage";
-import { stepHeaderStyle, stepStyle } from "./shared";
+import { stepHeaderStyle, stepStyle, maybeOpenPanel } from "./shared";
 
 export const UrlsStep = ({ job, isPopup }) => {
   const [action, setAction] = useState(null);
@@ -35,6 +35,8 @@ export const UrlsStep = ({ job, isPopup }) => {
   const timeoutRef = useRef(null);
 
   useEffect(() => {
+    if (!job) return;
+
     const update = async () => {
       console.log("updating current tab");
       const tab = await getActiveTab();
@@ -48,7 +50,7 @@ export const UrlsStep = ({ job, isPopup }) => {
     const on = chrome.webNavigation.onHistoryStateUpdated;
     on.addListener(update);
     return () => on.removeListener(update);
-  }, []);
+  }, [job]);
 
   useEffect(() => {
     setError(null);
@@ -84,10 +86,14 @@ export const UrlsStep = ({ job, isPopup }) => {
   const currentStep = numResults === 0 ? 1 : 2;
 
   const updateJob = (field, val, setter) => {
-    console.log("updateJob called", field, val);
+    console.log("updateJob called", job, field, val);
+    if (job == null) {
+      console.log('null job');
+    }
 
     setter(val);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    console.log('updated[field] = val', job?.urls, field, val);
     const updated = JSON.parse(JSON.stringify(job?.urls));
     updated[field] = val;
     timeoutRef.current = setTimeout(
@@ -101,8 +107,7 @@ export const UrlsStep = ({ job, isPopup }) => {
   const updateManualUrls = (val) => updateJob("manualUrls", val, setManualUrls);
   const updateList = (val) => updateJob("list", val, setList);
   const updateQuestion = (val) => updateJob("question", val, setQuestion);
-  const updateShouldClear = (val) =>
-    updateJob("shouldClear", val, setShouldClear);
+  const updateShouldClear = (val) => updateJob("shouldClear", val, setShouldClear);
   const updatePagination = (f) => updateJob("pagination", f, setPagination);
   const updatePerPage = (f) => updateJob("perPage", f, setPerPage);
 

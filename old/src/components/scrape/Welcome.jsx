@@ -144,7 +144,7 @@ export const Welcome = ({ isPopup, onStart, onSkip }) => {
         job = await genJob(prompt, useUrl, page);
       }
       console.log("==== GEN JOB DONE ====");
-      console.log("mmm genjob gave:", job);
+      console.log("mmm genjob gave 2:", job);
       return onStart(job);
     } catch (e) {
       console.log("mmm caught error in generate job:", e);
