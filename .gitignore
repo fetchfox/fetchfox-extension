@@ -19,9 +19,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# local env files
-.env*.local
+.env*
 
+zip/
 out/
 build/
 dist/
@@ -31,3 +31,4 @@ dist/
 
 # typescript
 .tsbuildinfo
+
