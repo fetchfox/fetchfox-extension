@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocal } from "../../state/storage";
 import Textarea from "react-expanding-textarea";
 import { runGather } from "../../lib/job";
 import { getActiveTab } from "../../lib/navigation";
@@ -23,6 +24,7 @@ export const UrlsStep = ({ job, isPopup }) => {
   const [pagination, setPagination] = useState();
   const [perPage, setPerPage] = useState();
   const [error, setError] = useState();
+  const [step, setStep] = useLocal('step');
 
   const setUrl = useCallback(
     (val) => {
@@ -38,9 +40,11 @@ export const UrlsStep = ({ job, isPopup }) => {
     if (!job) return;
 
     const update = async () => {
-      console.log("updating current tab");
+      if (step != 'inner') return;
+
+      console.log("ready updating current tab");
       const tab = await getActiveTab();
-      console.log("current tab:", tab.url);
+      console.log("ready current tab:", tab.url);
       updateUrl(tab.url);
       setCurrentUrl(tab.url);
     };

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useActiveJob } from "./jobs";
 
 export const useAutoSleepTime = () => {
-  const job = useActiveJob();
+  const { job } = useActiveJob();
   const [loadSleepTimes] = useLocal("loadSleepTimes");
 
   return useMemo(() => {

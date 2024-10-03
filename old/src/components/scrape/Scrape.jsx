@@ -39,7 +39,7 @@ import { mainStyle, maybeOpenPanel } from "./shared";
 
 const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
   const { loading: loadingOpenAiKey } = useOpenAiKey("loading");
-  const job = useActiveJob();
+  const { job } = useActiveJob();
 
   console.log("Active job:", job);
 
@@ -188,14 +188,19 @@ export const Scrape = ({ isPopup }) => {
     plan: openAiPlan,
     loading: loadingOpenAiKey,
   } = useOpenAiKey("loading");
-  const [aiReady, setAiReady] = useState():
+  const [ai, setAi] = useState({ ok: false, didInit: false });
+  const [activeTab, setActiveTab] = useState({ tab: null, didInit: false });
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useLocal('step');
   const [ready, setReady] = useState(false);
   const quota = useQuota();
   const activeJob = useActiveJob();
 
-  console.log('???');
+  useEffect(() => {
+    getActiveTab().then((tab) => {
+      setActiveTab({ tab, didInit: true });
+    });
+  }, []);
 
   useEffect(() => {
     // Flow:
@@ -205,103 +210,78 @@ export const Scrape = ({ isPopup }) => {
 
     if (loadingOpenAiKey) return;
     if (openAiPlan == 'openai') {
-      setAiReady(quota.ok);
+      setAi({ ok: quota.ok, didInit: true });
     } else if (openAiPlan == 'free') {
-      setAiReady(true);
+      setAi({ ok: true, didInit: true });
     } else {
-      setAiReady(false);
+      setAi({ ok: false, didInit: true });
     }
   }, [loadingOpenAiKey, openAiKey, openAiPlan, quota?.ok]);
 
   useEffect(() => {
     // Flow:
+    // - Wait for everything to initialize
     // - If AI config is not ready, show settings screen
     // - Else, wait for active job
     // - If no active job, show 'welcome'
     // - If active job, and same domain, show 'inner'
     // - Else, show 'welcome'
 
-    if (!aiReady) {
+    if (ready) return;
+    if (!ai.didInit) return;
+    if (!activeTab.didInit) return;
+    if (!activeJob.didInit) return;
+
+    console.log('get ready with:', ai);
+    console.log('get ready with:', activeTab);
+    console.log('get ready with:', activeJob);
+
+    if (!ai.ok) {
       setStep('settings');
       setReady(true);
       return;
     }
 
-    if (!activeJob) {
+    if (!activeJob.job) {
       setStep('welcome');
       setReady(true);
       return;
     }
 
-    getActiveTab().then(async (tab) => {
-      const inFlight = await getKey("inFlight");
-      const jobUrl = getJobUrl(activeJob) || "";
-      const tabUrl = tab ? tab.url : "";
-      const tabHostname = tabUrl ? new URL(tabUrl).hostname : "";
+    getKey("inFlight")
+      .then((inFlight) => {
+        const jobUrl = getJobUrl(activeJob.job) || "";
+        const tabUrl = activeTab ? activeTab.tab.url : "";
+        const tabHostname = tabUrl ? new URL(tabUrl).hostname : "";
 
-      if (inFlight > 0) {
-        // Job is running, go to inner page
-        setStep('inner');
-        setReady(true);
-      } else if (jobUrl && jobUrl.indexOf(tabHostname) === -1) {
-        // New domain, assume new job
-        console.log("eee new domain, so change the step");
-        setStep("welcome");
-        setReady(true);
-      } else {
-        setStep("inner");
-        setReady(true);
-      }
-    });
-  }, [aiReady, activeJob]);
+        console.log('got inFlight to get ready:', inFlight);
+        console.log('got jobUrl to get ready:', jobUrl);
+        console.log('got tabUrl to get ready:', tabUrl);
+        console.log('got tabHostname to get ready:', tabHostname);
 
+        if (inFlight > 0) {
+          // Job is running, go to inner page
+          setStep('inner');
+          setReady(true);
+        } else if (jobUrl && jobUrl.indexOf(tabHostname) === -1) {
+          // New domain, assume new job
+          console.log("ready new domain, so change the step");
+          setStep("welcome");
+          setReady(true);
+        } else {
+          setStep("inner");
+          setReady(true);
+        }
+      });
 
-  // useEffect(() => {
-  //   console.log("what should we do?", openAiPlan, openAiKey, loading);
-
-  //   if (loadingOpenAiKey) return;
-  //   setLoading(false);
-  //   if (step === "settings") return;
-
-  //   if (!openAiPlan || (openAiPlan === "openai" && !openAiKey)) {
-  //     setStep("settings");
-  //   } else {
-  //     if (!step) setStep("welcome");
-  //   }
-  // }, [openAiKey, openAiPlan, loadingOpenAiKey]);
-
-  // useEffect(() => {
-  //   console.log("eee activeJob changed, check if we need to change the step", step, activeJob);
-
-  //   if (!activeJob) return;
-  //   if (!loading) return;
-
-  //   getActiveTab().then(async (tab) => {
-  //     const jobUrl = getJobUrl(activeJob) || "";
-  //     const tabUrl = tab ? tab.url : "";
-  //     const tabHostname = tabUrl ? new URL(tabUrl).hostname : "";
-
-  //     const inFlight = await getKey("inFlight");
-  //     if (inFlight > 0) {
-  //       // Job is running, go to inner page
-  //       setStep("inner");
-  //       setLoading(false);
-  //     } else if (jobUrl && jobUrl.indexOf(tabHostname) === -1) {
-  //       // New domain, assume new job
-  //       console.log("eee new domain, so change the step");
-  //       setStep("welcome");
-  //       setLoading(false);
-  //     } else {
-  //       // Pick up where we left off
-  //       console.log("eee not changing step");
-  //       setStep((await getKey("scrapeStep")) || "welcome");
-  //       setLoading(false);
-  //     }
-  //   });
-  // }, [activeJob]);
+  }, [
+    ai.didInit,
+    activeTab.didInit,
+    activeJob.didInit,
+  ]);
 
   const handleSkip = async () => {
-    if (!activeJob) {
+    if (!activeJob.job) {
       handleStart(await genBlankJob());
     } else {
       await setKey("scrapeStep", "inner");
@@ -335,7 +315,7 @@ export const Scrape = ({ isPopup }) => {
       </ul>
 
       STEP:{step}<br/>
-      AI READY?{''+aiReady}<br/>
+      AI READY?{JSON.stringify(ai)}<br/>
       READY?{''+ready}<br/>
       loadingOpenAiKey:{loadingOpenAiKey}
     </div>

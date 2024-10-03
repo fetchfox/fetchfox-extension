@@ -31,11 +31,27 @@ export const useJobs = () => {
 };
 
 export const useJob = (jobId) => {
-  const [job] = useLocal(getJobKey(jobId));
-  return job || null;
+  const [didInit, setDidInit] = useState();
+  const [job] = useLocal(getJobKey(jobId), 'loading');
+  const [result, setResult] = useState({ job: null, didInit: false });
+
+  useEffect(() => {
+    // console.log('get ready, JOB:', job);
+
+    if (job == 'loading') {
+      setResult({ job: null, didInit: false });
+    } else {
+      setResult({ job, didInit: true });
+    }
+  }, [job]);
+
+  return result;
 };
 
 export const useActiveJob = () => {
   const [activeId] = useLocal("activeId");
+
+  // console.log('get ready with activeId', activeId);
+
   return useJob(activeId);
 };
