@@ -36,9 +36,14 @@ export const useJob = (jobId) => {
   const [result, setResult] = useState({ job: null, didInit: false });
 
   useEffect(() => {
-    // console.log('get ready, JOB:', job);
+    setResult({ job: null, didInit: false });
+  }, [jobId]);
 
-    if (job == 'loading') {
+  useEffect(() => {
+    console.log('get ready, JOB:', job, jobId);
+    if (jobId === undefined) {
+      setResult({ job: null, didInit: true });
+    } else if (job == 'loading') {
       setResult({ job: null, didInit: false });
     } else {
       setResult({ job, didInit: true });

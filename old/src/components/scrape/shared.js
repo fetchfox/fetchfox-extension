@@ -24,10 +24,14 @@ export const openPanel = async () => {
   const activeTab = await getActiveTab();
   chrome.sidePanel.setOptions({
     tabId: activeTab.id,
+    // windowId: activeTab.windowId,
     path: 'sidepanel.html',
     enabled: true,
   });
-  await chrome.sidePanel.open({ tabId: activeTab.id });
+  await chrome.sidePanel.open({
+    tabId: activeTab.id,
+    // windowId: activeTab.windowId,
+  });
 
   // TODO: remove need for setTimeout
   setTimeout(() => { window.close() }, 50);

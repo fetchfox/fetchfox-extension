@@ -20,7 +20,7 @@ export const StatusBar = ({ onRun }) => {
   const [inFlight] = useLocal("inFlight");
 
   const message = status?.message ?? "";
-  const busy = inFlight !== 0;
+  const busy = (inFlight || 0) != 0;
 
   const size = 28;
 
@@ -49,7 +49,8 @@ export const StatusBar = ({ onRun }) => {
         overflow: "hidden",
         position: "relative",
       }}
-    >
+      >
+      {/*BUSY:{''+busy} INFLIGHT:{''+inFlight}*/}
       <div style={{ width: size + 2, paddingLeft: 2, textAlign: "right" }}>
         {busy ? <Loading width={size} /> : null}
       </div>
