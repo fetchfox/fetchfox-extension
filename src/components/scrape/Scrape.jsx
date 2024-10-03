@@ -151,13 +151,9 @@ const StatusBar = ({ onRun }) => {
   const roundId = useRoundId(0);
   const usage = useUsage();
 
-  console.log('sb icon?', chrome.action);
-
   useEffect(() => {
     setBusy(loading || inFlight != 0);
   }, [loading, inFlight]);
-
-  console.log('Status bar usage:', usage);
 
   useEffect(() => {
     chrome.storage.local.get()
@@ -352,33 +348,48 @@ const UrlsStep = ({ job, isPopup }) => {
       });
   }, [url, action, manualUrls]);
 
-  const updateTabAndAction = (t) => {
+  const updateTabAndAction = async (t) => {
     setTab(t);
-    updateAction(t);
-    // updatePerPage('guess');
+    await updateAction(t);
+    if (t == 'current') {
+      await updatePerPage('multiple');
+      await updateConcurrency(-1);
+    } else {
+      await updatePerPage('guess');
+      await updateConcurrency(3);
+    }
   }
 
   const numResults = (job?.results?.targets || []).length;
   const currentStep = numResults == 0 ? 1 : 2;
 
-  const updateJob = (field, val, setter) => {
+  const updateJob = async (field, val, setter, hack) => {
+    if (!hack) hack = 'urls';
     setter(val);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    const updated = JSON.parse(JSON.stringify(job.urls));
+    const updated = JSON.parse(JSON.stringify(job[hack]));
     updated[field] = val;
-    timeoutRef.current = setTimeout(
-      () => setJobField(job.id, 'urls', updated),
-      100);
+    return new Promise((ok) => {
+      timeoutRef.current = setTimeout(
+        async () => {
+          await setJobField(job.id, hack, updated);
+          ok();
+        },
+        100);
+    });
   };
 
-  const updateAction = (val) => updateJob('action', val, setAction);
-  const updateUrl = (val) => updateJob('url', val, setUrl);
-  const updateManualUrls = (val) => updateJob('manualUrls', val, setManualUrls);
-  const updateList = (val) => updateJob('list', val, setList);
-  const updateQuestion = (val) => updateJob('question', val, setQuestion);
-  const updateShouldClear = (val) => updateJob('shouldClear', val, setShouldClear);
-  const updatePagination = (f) => updateJob('pagination', f, setPagination);
-  const updatePerPage = (f) => updateJob('perPage', f, setPerPage);
+  const updateConcurrency = async (val) => updateJob(
+    'concurrency', val, () => {}, 'scrape');
+
+  const updateAction = async (val) => updateJob('action', val, setAction);
+  const updateUrl = async (val) => updateJob('url', val, setUrl);
+  const updateManualUrls = async (val) => updateJob('manualUrls', val, setManualUrls);
+  const updateList = async (val) => updateJob('list', val, setList);
+  const updateQuestion = async (val) => updateJob('question', val, setQuestion);
+  const updateShouldClear = async (val) => updateJob('shouldClear', val, setShouldClear);
+  const updatePagination = async (f) => updateJob('pagination', f, setPagination);
+  const updatePerPage = async (f) => updateJob('perPage', f, setPerPage);
 
   const cleanManualUrls = (x) => x
     .split('\n')
@@ -934,13 +945,19 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
     setLoading(true);
 
     try {
-      const useUrl = isActive ? (await getActiveTab()).url : url;
+      const activeTab = await getActiveTab();
+      console.log('activeTab', activeTab);
+      const useUrl = isActive ? activeTab.url : url;
+
+      console.log('useUrl', useUrl);
+      console.log('isActive?', isActive);
+
       let job;
       if (manual) {
         job = await genJobFromUrls(prompt, manualUrls.split('\n'));
       } else {
         const page = isActive ? (await getTabData()) : null;
-        if (page.error) {
+        if (page?.error) {
           setGlobalError(page.error);
           return;
         }
