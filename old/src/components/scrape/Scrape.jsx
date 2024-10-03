@@ -284,7 +284,6 @@ export const Scrape = ({ isPopup }) => {
     if (!activeJob.job) {
       handleStart(await genBlankJob());
     } else {
-      await setKey("scrapeStep", "inner");
       setStep("inner");
     }
   };
@@ -294,15 +293,12 @@ export const Scrape = ({ isPopup }) => {
 
     await saveJob(job);
     await setActiveJob(job.id);
-    return;
-    await setKey("scrapeStep", "inner");
     await setStep("inner");
     setKey("masterPrompt", "");
     window.scrollTo(0, 0);
   };
 
   const handleNew = async () => {
-    await setKey("scrapeStep", "welcome");
     await setStep("welcome");
   };
 
