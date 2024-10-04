@@ -2,7 +2,11 @@ import * as Sentry from '@sentry/react';
 import { sentryDsn } from './constants.mjs';
 import { setKey, getKey } from './store.mjs';
 
+let timeoutId = null;
+
 export const setGlobalError = async (message) => {
+  if (timeoutId) clearTimeout(timeoutId);
+  timeoutId = setTimeout(clearGlobalError, 5000);
   return setKey('globalError', { message });
 }
 
@@ -15,8 +19,10 @@ export const getGlobalError = async () => {
 }
 
 export const initSentry = () => {
-  // if (chrome.runtime.getManifest()
-  // return;
+  https://stackoverflow.com/questions/12830649/check-if-chrome-extension-installed-in-unpacked-mode
+  if (!('update_url' in chrome.runtime.getManifest())) {
+    return;
+  }
 
   Sentry.init({
     dsn: sentryDsn,
