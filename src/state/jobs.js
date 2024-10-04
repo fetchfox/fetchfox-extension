@@ -1,76 +1,60 @@
-import { useMemo, useEffect, useState } from 'react';
-import {
-  getJob,
-  getActiveJob,
-} from '../lib/store.mjs';
-
+import { storage, useLocal } from "./storage";
+import { sift, sort } from "radash";
+import { useEffect, useMemo, useState } from "react";
 
 export const useJobs = () => {
-  const [jobs, setJobs] = useState([]);
-
-  const update = () => {
-    chrome.storage.local.get().then((st) => {
-      const j = Object.keys(st)
-        .filter(k => k.startsWith('job_'))
-        .map(k => parseInt(k.replace('job_', '')))
-        .sort((a, b) => b - a)
-        .map(k => st['job_' + k]);
-
-      setJobs(j);
-    });
-  };
+  const [jobs, setJobs] = useState({});
+  const [jobIds] = useLocal("jobs_ids");
 
   useEffect(() => {
-    update();
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
+    const keys = jobIds || [];
+
+    const listeners = {};
+    keys.forEach((id) => {
+      const key = 'job_' + id;
+      listeners[key] = async (c) => {
+        setJobs((old) => ({ ...old, [id]: c.newValue }));
+      };
+    });
+
+    storage.watch(listeners);
+    return () => storage.unwatch(listeners);
   }, []);
 
-  return jobs;
-}
+  return useMemo(() => {
+    const sortedJobIds = sort(jobIds || [], (it) => parseInt(it), true);
+    const sortedJobs = sortedJobIds.map((id) => jobs[id]);
+    return sift(sortedJobs);
+  }, [jobIds, jobs]);
+};
 
 export const useJob = (jobId) => {
-  const [job, setJob] = useState();
-
-  const update = (changes) => {
-    if (changes['job_' + jobId]) {
-      setJob(changes['job_' + jobId].newValue)
-    }
-  };
+  const [didInit, setDidInit] = useState();
+  const [job] = useLocal('job_' + jobId, 'loading');
+  const [result, setResult] = useState({ job: null, didInit: false });
 
   useEffect(() => {
-    if (!jobId) return;
-    getJob(jobId).then(j => {
-      setJob(j);
-    });
-
-    chrome.storage.onChanged.addListener(update);
-    return () => {
-      chrome.storage.onChanged.removeListener(update);
-    }
+    setResult({ job: null, didInit: false });
   }, [jobId]);
 
-  return job;
-}
+  useEffect(() => {
+    console.log('get ready, JOB:', job, jobId);
+    if (jobId === undefined) {
+      setResult({ job: null, didInit: true });
+    } else if (job == 'loading') {
+      setResult({ job: null, didInit: false });
+    } else {
+      setResult({ job, didInit: true });
+    }
+  }, [job]);
+
+  return result;
+};
 
 export const useActiveJob = () => {
-  const [activeId, setActiveId] = useState();
-  const active = useJob(activeId);
+  const [activeId] = useLocal("activeId");
 
-  const update = (changes) => {
-    if (changes.activeId) {
-      setActiveId(changes.activeId.newValue);
-    }
-  };
+  // console.log('get ready with activeId', activeId);
 
-  useEffect(() => {
-    getActiveJob().then(j => {
-      if (!j) return;
-      setActiveId(j.id);
-    });
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
-  }, []);
-
-  return active;
-}
+  return useJob(activeId);
+};
