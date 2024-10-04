@@ -1086,6 +1086,12 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
   const { key: openAiKey, plan: openAiPlan, loading: loadingOpenAiKey } = useOpenAiKey('loading');
   const { job } = useActiveJob();
 
+  // return (
+  //   <div>
+  //     Active job <pre>{JSON.stringify(job, null, 2)}</pre>
+  //   </div>
+  // );
+
   console.log('Active job:', job);
   const handleScrape = async (urls) => {
     return runScrape(job, urls);
@@ -1149,6 +1155,8 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
       </button>
     </div>
   );
+
+  if (!job) return <div>Loading</div>;
 
   return (
     <div style={mainStyle}>
