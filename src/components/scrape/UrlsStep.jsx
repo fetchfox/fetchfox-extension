@@ -71,6 +71,7 @@ import { Pills } from '../common/Pills';
 import { Error } from '../common/Error';
 import { HelpBar } from '../common/HelpBar';
 import { GlobalError } from '../common/GlobalError';
+import { Input } from '../common/Input';
 import { OpenAiKeyEntry } from '../openai/OpenAiKeyEntry';
 import { Pagination } from '../pagination/Pagination';
 import { PerPage } from '../perpage/PerPage';
@@ -88,16 +89,12 @@ import {
   maybeOpenPanel,
 } from './shared.js';
 
-
 export const UrlsStep = ({ jobId, isPopup }) => {
-
   const { job, setJob } = useJob(jobId);
   const [step, setStep] = useLocal('step');
   const [pagination, setPagination] = useState();
   const [error, setError] = useState();
   const [manualError, setManualError] = useState();
-
-  const timeoutRef = useRef(null);
 
   const handle = async (keys, val) => {
     return setJob(set(job, keys, val));
@@ -205,7 +202,7 @@ export const UrlsStep = ({ jobId, isPopup }) => {
   const questionNode = (
     <div>
       <p>What kinds of {job?.urls.action == 'gather' ? 'links' : 'items' } should we look for?</p>
-      <Textarea
+      <Input
         style={{ width: '100%',
                  fontFamily: 'sans-serif',
                  resize: 'none',
