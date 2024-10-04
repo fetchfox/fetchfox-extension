@@ -87,6 +87,7 @@ import {
   stepStyle,
   stepHeaderStyle,
   smallButtonStyle,
+  openPanel,
   maybeOpenPanel,
 } from './shared.js';
 
@@ -609,7 +610,7 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
       {(job?.results?.targets || []).length > 0 && controlsNode}
 
       <Results
-        job={job}
+        jobId={job.id}
         targets={job?.results?.targets || []}
         onScrape={handleScrape}
         onRemove={handleRemove}

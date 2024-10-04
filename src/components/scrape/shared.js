@@ -1,3 +1,5 @@
+import { getActiveTab } from '../../lib/navigation.mjs';
+
 export const blankJob = {
   id: 'draft',
   urls: {

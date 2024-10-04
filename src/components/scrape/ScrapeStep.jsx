@@ -197,12 +197,12 @@ export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
   );
 
   const handleClick = async () => {
-    let urls = mirror.results.targets
+    let urls = (mirror?.results.targets || [])
       .filter(t => t.status != 'scraped')
       .map(t => t.url);
 
     if (urls.length == 0) {
-      urls = mirror.results.targets
+      urls = (mirror?.results.targets || [])
         .map(t => t.url);
     }
 
@@ -226,7 +226,7 @@ export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
       <pre>{JSON.stringify(mirror?.scrape, null, 2)}</pre>
       */}
 
-      <div style={stepHeaderStyle}>What do you want to scrape on {mirror.urls?.action == 'current' ? 'this' : 'each'} page?</div>
+      <div style={stepHeaderStyle}>What do you want to scrape on {mirror?.urls?.action == 'current' ? 'this' : 'each'} page?</div>
       {nodes}
 
       <div
@@ -237,9 +237,9 @@ export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
         <FiPlus size={14} />&nbsp;Add Field
       </div>
 
-      {['gather', 'manual'].includes(mirror.urls?.action) && controlsNode}
+      {['gather', 'manual'].includes(mirror?.urls.action) && controlsNode}
 
-      {mirror.urls.action == 'gather' && <div style={{ marginTop: 10 }}>
+      {mirror?.urls.action == 'gather' && <div style={{ marginTop: 10 }}>
         <button
           className={'btn btn-gray btn-md'}
           style={{ width: '100%' }}

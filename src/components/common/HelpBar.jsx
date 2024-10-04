@@ -21,7 +21,7 @@ export const HelpBar = () => {
              }}
       >
       <div>
-        FetchFox is new. Get help on <a className="clickable" href={discordUrl} target="_blank">Discord</a>.</div>
+        FetchFox is new. You can DM the devs on <a className="clickable" href={discordUrl} target="_blank">Discord</a>.</div>
       <div>
         <Report />
       </div>

@@ -244,6 +244,7 @@ export const getAvailableModels = async () => {
     return [];
   }
 
+  console.log('fetch models with', apiKey);
   const resp = await fetch(
     'https://api.openai.com/v1/models',
     { headers: {Authorization: 'Bearer ' + apiKey }});

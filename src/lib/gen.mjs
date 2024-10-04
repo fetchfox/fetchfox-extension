@@ -70,6 +70,7 @@ export const genJob = async (scrapePrompt, url, page) => {
     job.urls.action = "gather";
     job.urls.question = answer.itemDescription + ": " + answer.gatherPrompt;
     job.urls.perPage = "single";
+    job.scrape.concurrency = 3;
   }
 
   return job;

@@ -6,18 +6,20 @@ import {
   IoMdArrowBack,
   IoIosArrowDroprightCircle,
 } from 'react-icons/io';
+import { useJob } from '../../state/jobs';
 import { IoPlayCircle, IoCloseCircle } from 'react-icons/io5';
 import { NewScrape } from '../newscrape/NewScrape';
 import { Loading } from '../common/Loading';
 
 export const Results = ({
-  job,
+  jobId,
   targets,
   onScrape,
   onRemove,
   onNewJobFromUrls }) =>
 {
 
+  const { job } = useJob(jobId);
   const [highlight, setHighlight] = useState();
   const headers = job?.results?.answerHeaders || [];
   const types = (job?.results?.types || {});
@@ -184,7 +186,7 @@ export const Results = ({
 
   let countsStr = '';
 
-  if (job.scrape?.scrapeType == 'multiPage') {
+  if (job?.scrape?.scrapeType == 'multiPage') {
     countsStr += counts.total + ' ' + (counts.total == 1 ? 'result' : 'results');
     countsStr += ' (' + counts.scraped + ' scraped';
     if (counts.error > 0) {

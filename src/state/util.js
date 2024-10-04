@@ -56,7 +56,7 @@ export const useMirror = (orig, setOrig) => {
   const [mirror, setMirror] = useState();
 
   useEffect(() => {
-    if (mirror) return;
+    if (JSON.stringify(mirror) == JSON.stringify(orig)) return;
     setMirror(orig);
   }, [orig]);
 
