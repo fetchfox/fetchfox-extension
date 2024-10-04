@@ -1,6 +1,7 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useRef } from 'react';
 import { getKey } from '../lib/store.mjs';
 import { useActiveJob } from './jobs';
+import { set } from 'radash';
 
 export const useAutoSleepTime = () => {
   const [average, setAverage] = useState();
@@ -49,4 +50,33 @@ export const useAutoSleepTime = () => {
   }, [job?.id]);
 
   return { average, times, pretty };
+}
+
+export const useMirror = (orig, setOrig) => {
+  const [mirror, setMirror] = useState();
+
+  useEffect(() => {
+    if (mirror) return;
+    setMirror(orig);
+  }, [orig]);
+
+  const timeoutRef = useRef();
+  const delayedSet = (updates) => {
+    const copy = {...orig};
+    const run = (copy, setter) => {
+      for (const [keys, val] of updates) {
+        copy = set(copy, keys, val);
+      }
+      setter(copy);
+    }
+    run({...mirror}, setMirror);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(
+      () => run({...orig}, setOrig),
+      1000);
+  }
+
+  return [mirror, delayedSet];
 }

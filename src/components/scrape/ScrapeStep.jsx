@@ -62,7 +62,7 @@ import {
   useJob,
   useActiveJob,
 } from '../../state/jobs';
-import { useAutoSleepTime } from '../../state/util';
+import { useAutoSleepTime, useMirror } from '../../state/util';
 import { useOpenAiKey, useUsage, useQuota } from '../../state/openai';
 import { useLocal } from '../../state/storage';
 import { Loading } from '../common/Loading';
@@ -92,36 +92,33 @@ import {
 
 export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
   const { job, setJob } = useJob(jobId);
+  const [mirror, updateMirror] = useMirror(job, setJob);
 
   const [sleepTime, setSleepTime] = useState();
   const numResults = (job?.results?.targets || []).length;
   const currentStep = numResults == 0 ? 1 : 2;
   const autoSleepTime = useAutoSleepTime();
 
-  const handle = async (keys, val) => {
-    return setJob(set(job, keys, val));
-  }
-
   const updateQuestion = async (index, val) => {
-    const q = [...job.scrape.questions];
+    const q = [...mirror.scrape.questions];
     q[index] = val;
-    handle('scrape.questions', q);
+    updateMirror([['scrape.questions', q]]);
   };
 
   const removeQuestion = (index) => {
-    const q = [...job.scrape.questions];
+    const q = [...mirror.scrape.questions];
     q.splice(index, 1);
-    handle('scrape.questions', q);
+    updateMirror([['scrape.questions', q]]);
   }
 
   const addQuestion = () => {
-    const q = [...job.scrape.questions];
+    const q = [...mirror.scrape.questions];
     q.push('');
-    handle('scrape.questions', q);
+    updateMirror([['scrape.questions', q]]);
   }
 
   let i = 0;
-  const nodes = (job?.scrape?.questions || []).map(q => {
+  const nodes = (mirror?.scrape?.questions || []).map(q => {
     const index = i++;
     return (
       <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -150,8 +147,8 @@ export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
         <p>Max tabs at once. Reduce if you hit rate limits.</p>
         <select
           style={{ width: '100%' }}
-          value={job?.scrape?.concurrency}
-          onChange={(e) => handle('scrape.concurrency', e.target.value)}
+          value={mirror?.scrape?.concurrency}
+          onChange={(e) => updateMirror([['scrape.concurrency', e.target.value]])}
           >
           <option value=""></option>
           <optgroup label="Foreground tabs">
@@ -180,7 +177,7 @@ export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
         <select
           style={{ width: '100%' }}
           value={sleepTime}
-          onChange={(e) => handle('scrape.sleepTime', e.target.value)}
+          onChange={(e) => updateMirror([['scrape.sleepTime', e.target.value]])}
           >
           <option value=""></option>
           <optgroup label="Automatically adjust">
@@ -200,12 +197,12 @@ export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
   );
 
   const handleClick = async () => {
-    let urls = job.results.targets
+    let urls = mirror.results.targets
       .filter(t => t.status != 'scraped')
       .map(t => t.url);
 
     if (urls.length == 0) {
-      urls = job.results.targets
+      urls = mirror.results.targets
         .map(t => t.url);
     }
 
@@ -221,8 +218,15 @@ export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
 
   return (
     <div style={stepStyle}>
-      {/*<pre>{JSON.stringify(job.scrape, null, 2)}</pre>*/}
-      <div style={stepHeaderStyle}>What do you want to scrape on {job.urls?.action == 'current' ? 'this' : 'each'} page?</div>
+
+      {/*
+      <p>job</p>
+      <pre>{JSON.stringify(job?.scrape, null, 2)}</pre>
+      <p>mirror</p>
+      <pre>{JSON.stringify(mirror?.scrape, null, 2)}</pre>
+      */}
+
+      <div style={stepHeaderStyle}>What do you want to scrape on {mirror.urls?.action == 'current' ? 'this' : 'each'} page?</div>
       {nodes}
 
       <div
@@ -233,9 +237,9 @@ export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
         <FiPlus size={14} />&nbsp;Add Field
       </div>
 
-      {['gather', 'manual'].includes(job.urls?.action) && controlsNode}
+      {['gather', 'manual'].includes(mirror.urls?.action) && controlsNode}
 
-      {job.urls.action == 'gather' && <div style={{ marginTop: 10 }}>
+      {mirror.urls.action == 'gather' && <div style={{ marginTop: 10 }}>
         <button
           className={'btn btn-gray btn-md'}
           style={{ width: '100%' }}

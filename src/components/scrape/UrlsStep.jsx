@@ -62,7 +62,7 @@ import {
   useJob,
   useActiveJob,
 } from '../../state/jobs';
-import { useAutoSleepTime } from '../../state/util';
+import { useAutoSleepTime, useMirror } from '../../state/util';
 import { useOpenAiKey, useUsage, useQuota } from '../../state/openai';
 import { useLocal } from '../../state/storage';
 import { Loading } from '../common/Loading';
@@ -89,50 +89,21 @@ import {
   maybeOpenPanel,
 } from './shared.js';
 
-const useMirror = (orig, setOrig) => {
-  const [mirror, setMirror] = useState();
-
-  useEffect(() => {
-    if (mirror) return;
-    setMirror(orig);
-  }, [orig]);
-
-  const timeoutRef = useRef();
-  const delayedSet = (updates) => {
-    const copy = {...orig};
-    const run = (copy, setter) => {
-      for (const [keys, val] of updates) {
-        copy = set(copy, keys, val);
-      }
-      setter(copy);
-    }
-    run({...mirror}, setMirror);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(
-      () => run({...orig}, setOrig),
-      1000);
-  }
-
-  return [mirror, delayedSet];
-}
 
 export const UrlsStep = ({ jobId, isPopup }) => {
   const { job, setJob } = useJob(jobId);
-  const [step, setStep] = useLocal('step');
   const [mirror, updateMirror] = useMirror(job, setJob);
+
+  const [step, setStep] = useLocal('step');
   const [pagination, setPagination] = useState();
   const [error, setError] = useState();
   const [manualError, setManualError] = useState();
-
-  const handle = updateMirror;
 
   useEffect(() => {
     const update = () => {
       if (step != 'inner') return;
       getActiveTab().then(async (a) => {
-        await handle([
+        await updateMirror([
           ['urls.url', a.url],
           ['urls.currentUrl', a.url],
         ]);
@@ -157,21 +128,21 @@ export const UrlsStep = ({ jobId, isPopup }) => {
 
     switch (a) {
       case 'gather':
-        await handle([
+        await updateMirror([
           ['urls.action', a],
           ['urls.perPage', 'guess'],
           ['scrape.concurrency', 3],
         ]);
         break;
       case 'current':
-        await handle([
+        await updateMirror([
           ['urls.action', a],
           ['urls.perPage', 'multiple'],
           ['scrape.concurrency', -1],
         ]);
         break;
       case 'manual':
-        await handle([
+        await updateMirror([
           ['urls.action', a],
           ['urls.perPage', 'guess'],
           ['scrape.concurrency', 3],
@@ -230,7 +201,7 @@ export const UrlsStep = ({ jobId, isPopup }) => {
   const perPageNode = (
     <PerPage
       perPage={mirror?.urls.perPage}
-      onChange={val => handle([['urls.perPage', val]])}
+      onChange={val => updateMirror([['urls.perPage', val]])}
     />
   );
 
@@ -247,7 +218,7 @@ export const UrlsStep = ({ jobId, isPopup }) => {
                }}
         placeholder="Look for links to product pages"
         value={mirror?.urls.question}
-        onChange={(e) => handle([['urls.question', e.target.value]])} />
+        onChange={(e) => updateMirror([['urls.question', e.target.value]])} />
     </div>
   );
 
@@ -302,7 +273,7 @@ export const UrlsStep = ({ jobId, isPopup }) => {
 
       <Pagination
         url={mirror?.urls.currentUrl}
-        onChange={(val) => handle([['urls.pagination', val]])}
+        onChange={(val) => updateMirror([['urls.pagination', val]])}
         follow={mirror?.urls.pagination?.follow || false}
         count={mirror?.urls.pagination?.count || 0}
       />
@@ -331,7 +302,7 @@ export const UrlsStep = ({ jobId, isPopup }) => {
           placeholder={`https://www.example.com/page-1
 https://www.example.com/page-2
 ...`}
-          onChange={(e) => handle([['urls.manualUrls', e.target.value]])}
+          onChange={(e) => updateMirror([['urls.manualUrls', e.target.value]])}
           value={mirror?.urls.manualUrls}
         />
       </div>
