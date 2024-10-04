@@ -1,30 +1,18 @@
-import { useMemo, useEffect, useState } from 'react';
-import { getModel, getAvailableModels } from '../lib/ai.mjs';
-import { getKey } from '../lib/store.mjs';
-import { useRoundId } from '../lib/controller.mjs';
-import OpenAI from 'openai';
+import { useLocal, storage } from "./storage.js";
+import { useMemo, useEffect, useState } from "react";
+import { getModel, getAvailableModels } from "../lib/ai.mjs";
+import { getKey } from "../lib/store.mjs";
+import { useRoundId } from "../lib/controller.mjs";
+import OpenAI from "openai";
+// import { storage } from "../../../lib/extension";
 
 export const useOpenAiKey = () => {
-  const [key, setKey] = useState();
-  const [plan, setPlan] = useState();
-  const [loading, setLoading] = useState(true);
-
-  const update = () => {
-    chrome.storage.local.get().then((st) => {
-      setKey(st.openAiKey);
-      setPlan(st.openAiPlan);
-      setLoading(false);
-    });
-  };
-
-  useEffect(() => {
-    update();
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
-  }, []);
+  const [key, , { isLoading: keyIsLoading }] = useLocal("openAiKey");
+  const [plan, , { isLoading: planIsLoading }] = useLocal("openAiPlan");
+  const loading = keyIsLoading || planIsLoading;
 
   return { key, plan, loading };
-}
+};
 
 export const useOpenAiModels = () => {
   const [model, setModel] = useState();
@@ -37,66 +25,51 @@ export const useOpenAiModels = () => {
   }, [openai.key]);
 
   return { model, available };
-}
+};
 
 export const useUsage = () => {
   const roundId = useRoundId();
-  const [usage, setUsage] = useState({});
-
-  const update = (changes) => {
-    const key = 'roundUsage_' + roundId;
-    if (changes[key]) {
-      setUsage(changes[key].newValue);
-    }
-  };
-
-  useEffect(() => {
-    if (!roundId) return;
-    const key = 'roundUsage_' + roundId;
-    getKey(key).then(u => setUsage(u || {}));
-    chrome.storage.onChanged.addListener(update);
-    return () => chrome.storage.onChanged.removeListener(update);
-  }, [roundId]);
-
-  return usage;
-}
+  const [usage] = useLocal("roundUsage_" + roundId);
+  return usage || {};
+};
 
 export const useQuota = () => {
   const [quota, setQuota] = useState({ ok: true });
-  const openai = useOpenAiKey();
+  const { key: openaiKey, plan: openaiPlan } = useOpenAiKey();
   const models = useOpenAiModels();
 
-  useEffect(() => {    
-    if (!openai?.key) return;
+  useEffect(() => {
+    if (!openaiKey) return;
     if (!models?.model) return;
 
-    if (openai?.plan == 'free') {
+    if (openaiPlan === "free") {
       setQuota({ credits: 1, ok: true });
       return;
     }
 
     const client = new OpenAI({
-      apiKey: openai.key,
+      apiKey: openaiKey,
       dangerouslyAllowBrowser: true,
     });
 
     // There's no endpoint for quota available, so just run
     // a test prompt
-    client.chat.completions.create({
-      model: models.model,
-      messages: [{ role: 'user', content: 'test' }],
-    })
+    client.chat.completions
+      .create({
+        model: models.model,
+        messages: [{ role: "user", content: "test" }],
+      })
       .then((resp) => {
         setQuota({ credits: 1, ok: true });
       })
       .catch((err) => {
-        if (err.code == 'insufficient_quota') {
+        if (err.code === "insufficient_quota") {
           setQuota({ credits: 0, error: err, ok: false });
         } else {
           setQuota({ error: err, ok: false });
         }
       });
-  }, [openai?.plan, openai?.key, models?.model]);
+  }, [openaiPlan, openaiKey, models?.model]);
 
   return quota;
-}
+};

@@ -6,7 +6,7 @@ export const useAutoSleepTime = () => {
   const [average, setAverage] = useState();
   const [times, setTimes] = useState();
   const [pretty, setPretty] = useState();
-  const job = useActiveJob();
+  const { job } = useActiveJob();
 
   const parse = (loadSleepTimes) => {
     console.log('autosleep update loadSleepTimes', job, loadSleepTimes);

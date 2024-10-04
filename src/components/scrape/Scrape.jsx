@@ -1084,7 +1084,7 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
 
   // const [showSettings, setShowSettings] = useState();
   const { key: openAiKey, plan: openAiPlan, loading: loadingOpenAiKey } = useOpenAiKey('loading');
-  const job = useActiveJob();
+  const { job } = useActiveJob();
 
   console.log('Active job:', job);
   const handleScrape = async (urls) => {
