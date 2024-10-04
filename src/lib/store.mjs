@@ -83,8 +83,6 @@ export const getActiveJob = async () => {
 };
 
 export const setActiveJob = async (activeId) => {
-  console.log('xyz SET ACTIVE JOB', activeId);
-  alert('setActiveJob' + activeId);
   return setKey("activeId", activeId);
 };
 

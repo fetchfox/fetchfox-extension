@@ -52,7 +52,8 @@ export const genJob = async (scrapePrompt, url, page) => {
     name: (new URL(url)).hostname + ' - ' + (answer?.itemDescription || ''),
     urls: {
       manualUrls: url,
-      url: url,
+      url: url,  // TODO: remove this field
+      currentUrl: url,
     },
     scrape: {
       action: 'scrape',
@@ -60,16 +61,15 @@ export const genJob = async (scrapePrompt, url, page) => {
     },
   };
 
-  if (answer?.scrapeType == 'singlePage') {
-    job.urls.action = 'current';
-    job.urls.currentUrl = url;
+  if (answer?.scrapeType === "singlePage") {
+    job.urls.action = "current";
     job.urls.question = answer.itemDescription;
-    job.urls.perPage = answer.perPage || 'multiple';
+    job.urls.perPage = answer.perPage || "multiple";
     job.scrape.concurrency = -1;
-  } else if (answer?.scrapeType == 'multiPage') {
-    job.urls.action = 'gather',
-    job.urls.question = answer.itemDescription + ': ' + answer.gatherPrompt;
-    job.urls.perPage = 'single';
+  } else if (answer?.scrapeType === "multiPage") {
+    job.urls.action = "gather";
+    job.urls.question = answer.itemDescription + ": " + answer.gatherPrompt;
+    job.urls.perPage = "single";
   }
 
   return job;

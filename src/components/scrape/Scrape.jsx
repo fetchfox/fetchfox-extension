@@ -36,7 +36,7 @@ import {
 import { HiArrowsExpand } from 'react-icons/hi';
 import { runJob, runGather, runScrape, sendStopMessage } from '../../lib/job.mjs';
 import { genJob, genBlankJob, genJobFromUrls } from '../../lib/gen.mjs';
-import { formatNumber, getJobColumn, getJobUrl } from '../../lib/util.mjs';
+import { formatNumber, getJobColumn, getJobUrl, sleep } from '../../lib/util.mjs';
 import { getActiveTab, getTabData } from '../../lib/navigation.mjs';
 import { setGlobalError } from '../../lib/errors.mjs';
 import {
@@ -141,149 +141,146 @@ const openPanel = async () => {
 }
 
 const StatusBar = ({ onRun }) => {
-  const [message, setMessage] = useState('');
-  const [percent, setPercent] = useState();
-  const [completion, setCompletion] = useState();
-  const [tpm, setTpm] = useState();
-  const [inFlight, setInFlight] = useState(0);
-  const [loading, setLoading] = useState();
-  const [busy, setBusy] = useState();
-  const [statusHeight, setStatusHeight] = useState(0);
-  const roundId = useRoundId(0);
   const usage = useUsage();
+  const [status] = useLocal("status");
+  const [percent] = useLocal("percent");
+  const [completion] = useLocal("completion");
+  const [tpm] = useLocal("tpm");
+  const [inFlight] = useLocal("inFlight");
 
-  useEffect(() => {
-    setBusy(loading || inFlight != 0);
-  }, [loading, inFlight]);
+  const message = status?.message ?? "";
+  const busy = (inFlight || 0) != 0;
 
-  useEffect(() => {
-    chrome.storage.local.get()
-      .then(st => {
-        if (st.status) setMessage(st.status.message);
-        if (st.percent) setPercent(st.percent);
-        if (st.completion) setCompletion(st.completion);
-        if (st.tpm) setTpm(st.tpm);
-        if (st.inFlight) setInFlight(st.inFlight);
-      });
-  }, []);
-
-  useEffect(() => {
-    const handle = (changes, area) => {
-      if (changes.status) setMessage(changes.status.newValue.message);
-      if (changes.percent) setPercent(changes.percent.newValue);
-      if (changes.completion) setCompletion(changes.completion.newValue);
-      if (changes.tpm) setTpm(changes.tpm.newValue);
-      if (changes.inFlight) setInFlight(changes.inFlight.newValue);
-    };
-
-    chrome.storage.onChanged.addListener(handle);
-    return () => chrome.storage.onChanged.removeListener(handle);
-  });
-
-  const handleRun = () => {
-    onRun();
-  };
-
-  const size = 28
+  const size = 28;
 
   const buttonNode = (
     <div>
       <button
-        className={'btn btn-lg btn-primary'}
-        style={{ width: '100%' }}
-        onClick={() => handleRun()}
-        >
+        className={"btn btn-lg btn-primary"}
+        style={{ width: "100%" }}
+        onClick={onRun}
+      >
         Run Scrape
       </button>
     </div>
   );
 
-  const calcWidth = 'calc(100% - ' + (2 * size + 16) + 'px)';
+  const calcWidth = "calc(100% - " + (2 * size + 16) + "px)";
 
   const loadingNode = (
-    <div style={{ height: size + 20,
-                  padding: '2px 0',
-                  display: 'flex',
-                  gap: 5,
-                  alignItems: 'center',
-                  overflow: 'hidden',
-                  position: 'relative',
-                }}
+    <div
+      style={{
+        height: size + 20,
+        padding: "2px 0",
+        display: "flex",
+        gap: 5,
+        alignItems: "center",
+        overflow: "hidden",
+        position: "relative",
+      }}
       >
-      <div style={{ width: size + 2, paddingLeft: 2, textAlign: 'right' }}>
+      {/*BUSY:{''+busy} INFLIGHT:{''+inFlight}*/}
+      <div style={{ width: size + 2, paddingLeft: 2, textAlign: "right" }}>
         {busy ? <Loading width={size} /> : null}
       </div>
 
-      {busy && <div style={{ width: size }}>
-        <a
-          style={{ color: 'white' }}
-          href="#"
-          onClick={(e) => { e.preventDefault(); advanceRound(); sendStopMessage() }}
+      {busy && (
+        <div style={{ width: size }}>
+          <a
+            style={{ color: "white" }}
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              advanceRound();
+              sendStopMessage();
+            }}
           >
-          <FaCircleStop size={size} />
-        </a>
-      </div>}
-
-      {busy && percent && <div style={{ width: calcWidth,
-                                        height: 18,
-                                        bottom: 10,
-                                        position: 'absolute',
-                                        marginLeft: size * 2 + 16,
-                                        background: '#fff3',
-                                        borderRadius: 4,
-                  }}>
-        <div style={{ width: Math.floor(100 * percent) + '%',
-                      height: 18,
-                      background: mainColor,
-                      borderRadius: 4,
-                    }}>
+            <FaCircleStop size={size} />
+          </a>
         </div>
-      </div>}
+      )}
 
-      <div style={{ position: 'absolute',
-                    display: 'flex',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    width: calcWidth,
-                    marginLeft: size * 2 + 16,
-                    fontSize: 10,
-                    top: 6,
-                  }}>
+      {busy && percent && (
+        <div
+          style={{
+            width: calcWidth,
+            height: 18,
+            bottom: 10,
+            position: "absolute",
+            marginLeft: size * 2 + 16,
+            background: "#fff3",
+            borderRadius: 4,
+          }}
+        >
+          <div
+            style={{
+              width: Math.floor(100 * percent) + "%",
+              height: 18,
+              background: mainColor,
+              borderRadius: 4,
+            }}
+          ></div>
+        </div>
+      )}
+
+      <div
+        style={{
+          position: "absolute",
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          width: calcWidth,
+          marginLeft: size * 2 + 16,
+          fontSize: 10,
+          top: 6,
+        }}
+      >
         <div>
-          {percent && (Math.round(100*percent) + '%')}
-          {percent && !!completion?.done && !!completion?.total &&
+          {percent && Math.round(100 * percent) + "%"}
+          {percent && !!completion?.done && !!completion?.total && (
             <span> ({`${completion.done}/${completion.total}`})</span>
-           }
+          )}
         </div>
         <div>
-          {tpm && <span> {formatNumber(tpm, true)} tpm, {formatNumber(usage.total || 0, true)}</span>}
+          {tpm && (
+            <span>
+              {" "}
+              {formatNumber(tpm, true)} tpm,{" "}
+              {formatNumber(usage.total || 0, true)}
+            </span>
+          )}
         </div>
       </div>
 
-      <div style={{ whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    zIndex: 2,
-                    width: 'calc(100% - 10px)',
-                    paddingRight: 30,
-                    marginLeft: 8,
-                    marginTop: 8,
-                  }}>
-        {inFlight > 0 ? (' ' + message) : ''}
+      <div
+        style={{
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          zIndex: 2,
+          width: "calc(100% - 10px)",
+          paddingRight: 30,
+          marginLeft: 8,
+          marginTop: 8,
+        }}
+      >
+        {inFlight > 0 ? " " + message : ""}
       </div>
     </div>
   );
 
   return (
-    <div style={{ width: '100%',
-                  position: 'fixed',
-                  background: bgColor,
-                  left: 0,
-                  bottom: 0,
-                  padding: 10,
-                  height: 74,
-                }}>
-
+    <div
+      style={{
+        width: "100%",
+        position: "fixed",
+        background: bgColor,
+        left: 0,
+        bottom: 0,
+        padding: 10,
+        height: 74,
+      }}
+    >
       <div style={{ marginBottom: 20 }}>
         {!busy && buttonNode}
         {busy && loadingNode}
@@ -307,11 +304,13 @@ const UrlsStep = ({ job, isPopup }) => {
   const [pagination, setPagination] = useState();
   const [perPage, setPerPage] = useState();
   const [error, setError] = useState();
+  const [step, setStep] = useLocal('step');
 
   const timeoutRef = useRef(null);
 
   useEffect(() => {
     const update = () => {
+      if (step != 'inner') return;
       getActiveTab().then(a => {
         updateUrl(a.url);
         setCurrentUrl(a.url);
@@ -609,6 +608,8 @@ https://www.example.com/page-2
     </div>
   );
 
+  if (!job) return null;
+
   return (
     <div style={stepStyle}>
       <div style={stepHeaderStyle}>What page do you want to scrape?</div>
@@ -839,6 +840,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
   const [manual, setManual] = useState();
   const [manualUrls, setManualUrls] = useState('');
   const [disabled, setDisabled] = useState();
+  const [step, setStep] = useLocal('step');
   const jobs = useJobs();
 
   useEffect(() => {
@@ -891,16 +893,13 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
   };
 
   const handleExample = async (e, prompt, url) => {
-    await setPrompt(prompt);
-    await setUrl(url);
-    const resp = await handleSubmit(e, prompt, url);
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.update(tabs[0].id, { url });
-    });
-
-    if (isPopup) {
-      openPanel();
-    }
+    setPrompt(prompt);
+    setUrl(url);
+    await handleSubmit(e, prompt, url);
+    await setStep('inner');
+    const activeTab = await getActiveTab();
+    chrome.tabs.update(activeTab.id, { url });
+    if (isPopup) openPanel();
   }
 
   let i = 0;
@@ -947,11 +946,7 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
 
     try {
       const activeTab = await getActiveTab();
-      console.log('activeTab', activeTab);
       const useUrl = isActive ? activeTab.url : url;
-
-      console.log('useUrl', useUrl);
-      console.log('isActive?', isActive);
 
       let job;
       if (manual) {
@@ -965,10 +960,9 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
         job = await genJob(prompt, useUrl, page);
       }
       console.log('==== GEN JOB DONE ====');
-      console.log('mmm genjob gave:', job);
+      console.log('Gen job gave:', job);
       return onStart(job);
     } catch (e) {
-      console.log('mmm caught error in generate job:', e);
       setGlobalError('Error generating job, try again: ' + e);
       throw e;
     } finally {
@@ -979,7 +973,6 @@ const Welcome = ({ isPopup, onStart, onSkip }) => {
 
   const timeoutRef = useRef(null);
   const updatePrompt = (e) => {
-    console.log('updatePrompt', e.target.value);
     setPrompt(e.target.value);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(
@@ -1085,12 +1078,6 @@ const Inner = ({ isPopup, onNewJob, onShowSettings }) => {
   // const [showSettings, setShowSettings] = useState();
   const { key: openAiKey, plan: openAiPlan, loading: loadingOpenAiKey } = useOpenAiKey('loading');
   const { job } = useActiveJob();
-
-  // return (
-  //   <div>
-  //     Active job <pre>{JSON.stringify(job, null, 2)}</pre>
-  //   </div>
-  // );
 
   console.log('Active job:', job);
   const handleScrape = async (urls) => {
@@ -1418,99 +1405,11 @@ export const Scrape = ({ isPopup }) => {
     }
   }
 
-  // useEffect(() => {
-  //   if (!activeJob) return;
-  //   // if (!loading) return;
-
-  //   getActiveTab()
-  //     .then(async (tab) => {
-  //       const jobUrl = getJobUrl(activeJob) || '';
-  //       const tabUrl = tab ? tab.url : '';
-  //       const tabHostname = tabUrl ? (new URL(tabUrl)).hostname : '';
-
-  //       const inFlight = await getKey('inFlight');
-  //       if (inFlight > 0) {
-  //         // Job is running, go to inner page
-  //         setStep('inner');
-  //         setLoading(false);
-  //       } else if (jobUrl && jobUrl.indexOf(tabHostname) == -1) {
-  //         // New domain, assume new job
-  //         setStep('welcome');
-  //         setLoading(false);
-  //       } else {
-  //         // Pick up where we left off
-  //         setStep('welcome');
-  //         setLoading(false);
-  //       }
-  //     });
-
-  // }, [activeJob]);
-
-  // const handleSkip = async () => {
-  //   if (!activeJob) {
-  //     handleStart(await genBlankJob());
-  //   } else {
-  //     // await setKey('scrapeStep', 'inner');
-  //     setStep('inner');
-  //   }
-  // }
-
-  // const handleStart = async (job) => {
-  //   alert('do not start');
-  //   return;
-
-  //   await saveJob(job);
-  //   await setActiveJob(job.id);
-  //   // await setKey('scrapeStep', 'inner');
-  //   await setStep('inner');
-  //   setKey('masterPrompt', '');
-  //   window.scrollTo(0, 0);
-  // };
-
-  // const handleNew = async () => {
-  //   // await setKey('scrapeStep', 'welcome');
-  //   await setStep('welcome');
-  // }
-
-  // let body;
-
-  // if (loading || loadingOpenAiKey) {
-  //   body = (
-  //     <div style={{ padding: 50, textAlign: 'center', color: 'white' }}>
-  //       <Loading size={50} />
-  //       <p>loading? {''+loading}</p>
-  //       <p>loadingOpenAiKey? {''+loadingOpenAiKey}</p>
-  //     </div>
-  //   );
-  // } else if (!quota.ok || step == 'settings') {
-  //   body = (
-  //     <div style={mainStyle}>
-  //       <OpenAiKeyEntry onDone={() => { setStep('welcome') }} />
-  //     </div>
-  //   );
-  // } else if (step == 'welcome') {
-  //   body = (
-  //     <Welcome
-  //       isPopup={isPopup}
-  //       onStart={handleStart}
-  //       onSkip={handleSkip}
-  //     />
-  //   );
-  // } else {
-  //   body = (
-  //     <Inner
-  //       isPopup={isPopup}
-  //       onNewJob={handleNew}
-  //       onShowSettings={() => setStep('settings')}
-  //     />
-  //   );
-  // }
-
   return (
     <div style={{ minHeight: 560, color: 'white' }}>
       <HelpBar />
       <GlobalError />
-      {msg}
+      {/*msg*/}
       {body}
     </div>
   );
