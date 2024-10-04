@@ -173,7 +173,6 @@ export const Results = ({
   }
 
   for (const target of (targets || [])) {
-    console.log('count', target, counts);
     counts.total++;
     for (const a of (target.answer || [])) {
       counts.scraped++;

@@ -92,20 +92,47 @@ import {
 export const UrlsStep = ({ jobId, isPopup }) => {
   const { job, setJob } = useJob(jobId);
   const [step, setStep] = useLocal('step');
+  const [mirror, setMirror] = useState();
   const [pagination, setPagination] = useState();
   const [error, setError] = useState();
   const [manualError, setManualError] = useState();
 
-  const handle = async (keys, val) => {
-    return setJob(set(job, keys, val));
+  const timeoutRef = useRef();
+  const handle = async (updates) => {
+    console.log('updates', updates);
+
+    const copy = {...job};
+    const run = (copy, setter) => {
+      for (const [keys, val] of updates) {
+        console.log('keys, val', keys, val);
+        copy = set(copy, keys, val);
+      }
+      setter(copy);
+    }
+
+    run({...mirror}, setMirror);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(
+      () => run({...job}, setJob),
+      1000);
   }
+
+  useEffect(() => {
+    if (mirror) return;
+    setMirror(job);
+  }, [job]);
 
   useEffect(() => {
     const update = () => {
       if (step != 'inner') return;
       getActiveTab().then(async (a) => {
-        await handle('urls.url', a.url);
-        await handle('urls.currentUrl', a.url);
+        await handle([
+          ['urls.url', a.url],
+          ['urls.currentUrl', a.url],
+        ]);
       });
     };
 
@@ -124,25 +151,33 @@ export const UrlsStep = ({ jobId, isPopup }) => {
   }, [job?.urls.currentUrl]);
 
   const handleAction = async (a) => {
-    await handle('urls.action', a);
 
     switch (a) {
       case 'gather':
-        await handle('urls.perPage', 'guess');
-        await handle('scrape.concurrency', 3);
+        await handle([
+          ['urls.action', a],
+          ['urls.perPage', 'guess'],
+          ['scrape.concurrency', 3],
+        ]);
         break;
       case 'current':
-        await handle('urls.perPage', 'multiple');
-        await handle('scrape.concurrency', -1);
+        await handle([
+          ['urls.action', a],
+          ['urls.perPage', 'multiple'],
+          ['scrape.concurrency', -1],
+        ]);
         break;
       case 'manual':
-        await handle('urls.perPage', 'guess');
-        await handle('scrape.concurrency', 3);
+        await handle([
+          ['urls.action', a],
+          ['urls.perPage', 'guess'],
+          ['scrape.concurrency', 3],
+        ]);
         break;
     }
   }
 
-  const numResults = (job?.results?.targets || []).length;
+  const numResults = (mirror?.results?.targets || []).length;
   const currentStep = numResults == 0 ? 1 : 2;
 
   const cleanManualUrls = (x) => x
@@ -162,8 +197,6 @@ export const UrlsStep = ({ jobId, isPopup }) => {
     return true;
   }
 
-  if (!job) return null;
-
   const handleClick = async () => {
     const activeTab = await getActiveTab();
 
@@ -171,31 +204,31 @@ export const UrlsStep = ({ jobId, isPopup }) => {
       await maybeOpenPanel(job);
     }
 
-    switch (job.urls.action) {
+    switch (mirror.urls.action) {
       case 'gather':
         runGather(job);
-        if (job.urls.shouldClear) {
+        if (mirror.urls.shouldClear) {
           updateShouldClear(false);
         }
         break;
 
       case 'manual':
-        if (!checkManualUrls(job.urls.manualUrls, false)) return;
-        const add = cleanManualUrls(job?.urls.manualUrls);
+        if (!checkManualUrls(mirror.urls.manualUrls, false)) return;
+        const add = cleanManualUrls(mirror?.urls.manualUrls);
         console.log('add these urls manually:', add);
-        addUrlsToJob(job?.id, add);
+        addUrlsToJob(mirror?.id, add);
         setManualUrls('');
         break;
 
       default:
-        throw 'unhandled action: ' + job.urls.action;
+        throw 'unhandled action: ' + mirror.urls.action;
     }
   }
 
   const perPageNode = (
     <PerPage
-      perPage={job?.urls.perPage}
-      onChange={val => handle('urls.perPage', val)}
+      perPage={mirror?.urls.perPage}
+      onChange={val => handle([['urls.perPage', val]])}
     />
   );
 
@@ -211,8 +244,8 @@ export const UrlsStep = ({ jobId, isPopup }) => {
                  borderRadius: 2,
                }}
         placeholder="Look for links to product pages"
-        value={job?.urls.question}
-        onChange={(e) => handle('urls.question', e.target.value)} />
+        value={mirror?.urls.question}
+        onChange={(e) => handle([['urls.question', e.target.value]])} />
     </div>
   );
 
@@ -229,7 +262,7 @@ export const UrlsStep = ({ jobId, isPopup }) => {
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
-          {job?.urls.currentUrl}
+          {mirror?.urls.currentUrl}
         </div>
 
       </div>
@@ -261,15 +294,15 @@ export const UrlsStep = ({ jobId, isPopup }) => {
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
-          {job?.urls.currentUrl}
+          {mirror?.urls.currentUrl}
         </div>
       </div>
 
       <Pagination
-        url={job?.urls.currentUrl}
-        onChange={(val) => handle('urls.pagination', val)}
-        follow={job.urls?.pagination?.follow || false}
-        count={job.urls?.pagination?.count || 0}
+        url={mirror?.urls.currentUrl}
+        onChange={(val) => handle([['urls.pagination', val]])}
+        follow={mirror?.urls.pagination?.follow || false}
+        count={mirror?.urls.pagination?.count || 0}
       />
 
       {/*<pre>{JSON.stringify(job.urls?.pagination, null, 2)}</pre>*/}
@@ -296,8 +329,8 @@ export const UrlsStep = ({ jobId, isPopup }) => {
           placeholder={`https://www.example.com/page-1
 https://www.example.com/page-2
 ...`}
-          onChange={(e) => handle('urls.manualUrls', e.target.value)}
-          value={job?.urls.manualUrls}
+          onChange={(e) => handle([['urls.manualUrls', e.target.value]])}
+          value={mirror?.urls.manualUrls}
         />
       </div>
       <Error message={manualError} />
@@ -306,21 +339,28 @@ https://www.example.com/page-2
     </div>
   );
 
-  if (!job) return null;
+  if (!job || !mirror) return null;
 
   return (
     <div style={stepStyle}>
-      {/*<pre>{JSON.stringify(job.urls, null, 2)}</pre>*/}
+
+      {/*
+      <p>job</p>
+      <pre>{JSON.stringify(job?.urls, null, 2)}</pre>
+      <p>mirror</p>
+      <pre>{JSON.stringify(mirror?.urls, null, 2)}</pre>
+      */}
+
       <div style={stepHeaderStyle}>What page do you want to scrape?</div>
-      <Pills value={job.urls.action} onChange={(val) => handleAction(val)}>
+      <Pills value={mirror?.urls.action} onChange={(val) => handleAction(val)}>
         <div key="current">Current Page Only</div>
         <div key="gather">Linked Pages</div>
         <div key="manual">Manually Enter URLs</div>
       </Pills>
 
-      {job.urls.action == 'current' && currentNode}
-      {job.urls.action == 'gather' && gatherNode}
-      {job.urls.action == 'manual' && manualNode}
+      {mirror?.urls.action == 'current' && currentNode}
+      {mirror?.urls.action == 'gather' && gatherNode}
+      {mirror?.urls.action == 'manual' && manualNode}
 
       <Error message={error} />
     </div>
