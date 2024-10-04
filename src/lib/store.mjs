@@ -61,7 +61,7 @@ export const saveJob = async (job) => {
 
 export const setJobField = async (jobId, field, val) => {
   return updateJob(jobId, (job) => {
-    console.log("Set job field:", jobId, field, val);
+    console.log("setJobField Set job field:", jobId, field, val);
     job[field] = val;
     return job;
   });

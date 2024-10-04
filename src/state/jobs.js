@@ -30,20 +30,20 @@ export const useJobs = () => {
 
 export const useJob = (jobId) => {
   const [didInit, setDidInit] = useState();
-  const [job] = useLocal('job_' + jobId, 'loading');
-  const [result, setResult] = useState({ job: null, didInit: false });
+  const [job, setJob] = useLocal('job_' + jobId, 'loading');
+  const [result, setResult] = useState({ job: null, setJob, didInit: false });
 
   useEffect(() => {
-    setResult({ job: null, didInit: false });
+    setResult({ job: null, setJob, didInit: false });
   }, [jobId]);
 
   useEffect(() => {
     if (jobId === undefined) {
-      setResult({ job: null, didInit: true });
+      setResult({ job: null, setJob, didInit: true });
     } else if (job == 'loading') {
-      setResult({ job: null, didInit: false });
+      setResult({ job: null, setJob, didInit: false });
     } else {
-      setResult({ job, didInit: true });
+      setResult({ job, setJob, didInit: true });
     }
   }, [job]);
 
