@@ -39,7 +39,7 @@ export const Pagination = ({ onChange, follow, count }) => {
   if (pagination.didInit && !pagination.loading) {
     const num = (pagination.links?.pages || []).length;
 
-    if (num == 0) {
+    if (num <= 1) {
       paginationInfo = <div style={style}>No pagination found</div>;
     } else {
       paginationInfo = (
