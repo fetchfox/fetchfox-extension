@@ -89,41 +89,44 @@ import {
   maybeOpenPanel,
 } from './shared.js';
 
-export const UrlsStep = ({ jobId, isPopup }) => {
-  const { job, setJob } = useJob(jobId);
-  const [step, setStep] = useLocal('step');
+const useMirror = (orig, setOrig) => {
   const [mirror, setMirror] = useState();
-  const [pagination, setPagination] = useState();
-  const [error, setError] = useState();
-  const [manualError, setManualError] = useState();
+
+  useEffect(() => {
+    if (mirror) return;
+    setMirror(orig);
+  }, [orig]);
 
   const timeoutRef = useRef();
-  const handle = async (updates) => {
-    console.log('updates', updates);
-
-    const copy = {...job};
+  const delayedSet = (updates) => {
+    const copy = {...orig};
     const run = (copy, setter) => {
       for (const [keys, val] of updates) {
-        console.log('keys, val', keys, val);
         copy = set(copy, keys, val);
       }
       setter(copy);
     }
-
     run({...mirror}, setMirror);
-
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     timeoutRef.current = setTimeout(
-      () => run({...job}, setJob),
+      () => run({...orig}, setOrig),
       1000);
   }
 
-  useEffect(() => {
-    if (mirror) return;
-    setMirror(job);
-  }, [job]);
+  return [mirror, delayedSet];
+}
+
+export const UrlsStep = ({ jobId, isPopup }) => {
+  const { job, setJob } = useJob(jobId);
+  const [step, setStep] = useLocal('step');
+  const [mirror, updateMirror] = useMirror(job, setJob);
+  const [pagination, setPagination] = useState();
+  const [error, setError] = useState();
+  const [manualError, setManualError] = useState();
+
+  const handle = updateMirror;
 
   useEffect(() => {
     const update = () => {
@@ -215,7 +218,6 @@ export const UrlsStep = ({ jobId, isPopup }) => {
       case 'manual':
         if (!checkManualUrls(mirror.urls.manualUrls, false)) return;
         const add = cleanManualUrls(mirror?.urls.manualUrls);
-        console.log('add these urls manually:', add);
         addUrlsToJob(mirror?.id, add);
         setManualUrls('');
         break;
