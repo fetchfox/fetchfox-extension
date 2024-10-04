@@ -310,9 +310,8 @@ https://www.example.com/page-2
 
   return (
     <div style={stepStyle}>
+      {/*<pre>{JSON.stringify(job.urls, null, 2)}</pre>*/}
       <div style={stepHeaderStyle}>What page do you want to scrape?</div>
-
-      <pre>{JSON.stringify(job.urls, null, 2)}</pre>
       <Pills value={job.urls.action} onChange={(val) => handleAction(val)}>
         <div key="current">Current Page Only</div>
         <div key="gather">Linked Pages</div>

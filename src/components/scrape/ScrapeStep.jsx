@@ -103,19 +103,19 @@ export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
   }
 
   const updateQuestion = async (index, val) => {
-    const q = {...job.scrape.questions};
+    const q = [...job.scrape.questions];
     q[index] = val;
-    handle('scrape.questions', job.scrape.questions);
+    handle('scrape.questions', q);
   };
 
   const removeQuestion = (index) => {
-    const q = {...job.scrape.questions};
+    const q = [...job.scrape.questions];
     q.splice(index, 1);
     handle('scrape.questions', q);
   }
 
   const addQuestion = () => {
-    const q = {...job.scrape.questions};
+    const q = [...job.scrape.questions];
     q.push('');
     handle('scrape.questions', q);
   }
@@ -221,7 +221,7 @@ export const ScrapeStep = ({ jobId, isPopup, onChange, onClick }) => {
 
   return (
     <div style={stepStyle}>
-      <pre>{JSON.stringify(job.scrape, null, 2)}</pre>
+      {/*<pre>{JSON.stringify(job.scrape, null, 2)}</pre>*/}
       <div style={stepHeaderStyle}>What do you want to scrape on {job.urls?.action == 'current' ? 'this' : 'each'} page?</div>
       {nodes}
 
