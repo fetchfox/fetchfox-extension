@@ -97,30 +97,19 @@ export const UrlsStep = ({ jobId, isPopup }) => {
   const [error, setError] = useState();
   const [manualError, setManualError] = useState();
 
-  // const [action, setAction] = useState(null);
-  // const [url, setUrl] = useState(null);
-  // const [list, setList] = useState([]);
-  // const [question, setQuestion] = useState(null);
-  // const [shouldClear, setShouldClear] = useState(false);
-  // const [manualUrls, setManualUrls] = useState('');
-  // const [showCurrentButton, setShowCurrentButton] = useState(false);
-  // const [tab, setTab] = useState('gather');
-  // const [currentUrl, setCurrentUrl] = useState('');
-  // const [perPage, setPerPage] = useState();
-
   const timeoutRef = useRef(null);
 
-  const handle = (keys, val) => {
-    setJob(set(job, keys, val));
+  const handle = async (keys, val) => {
+    return setJob(set(job, keys, val));
   }
 
   useEffect(() => {
     const update = () => {
       if (step != 'inner') return;
-      // getActiveTab().then(a => {
-      //   updateUrl(a.url);
-      //   setCurrentUrl(a.url);
-      // });
+      getActiveTab().then(async (a) => {
+        await handle('urls.url', a.url);
+        await handle('urls.currentUrl', a.url);
+      });
     };
 
     update();
@@ -137,37 +126,23 @@ export const UrlsStep = ({ jobId, isPopup }) => {
     }
   }, [job?.urls.currentUrl]);
 
-  useEffect(() => {
-    // getActiveTab()
-    //   .then((activeTab) => {
-    //     setCurrentUrl(activeTab.url);
-    //     setTab(action);
+  const handleAction = async (a) => {
+    await handle('urls.action', a);
 
-    //     if (action == 'gather') {
-    //       const exists = !((url || '').split('\n').includes(activeTab.url));
-    //       setShowCurrentButton(exists);
-    //     } else if (action == 'manual') {
-    //       const exists = !((manualUrls || '').split('\n').includes(activeTab.url));
-    //       setShowCurrentButton(exists);
-    //     }
-    //   });
-  }, [
-    job?.urls.url,
-    job?.urls.action,
-    job?.urls.manualUrls
-  ]);
-
-  const updateTabAndAction = async (t) => {
-
-    // setTab(t);
-    // await updateAction(t);
-    // if (t == 'current') {
-    //   await updatePerPage('multiple');
-    //   await updateConcurrency(-1);
-    // } else {
-    //   await updatePerPage('guess');
-    //   await updateConcurrency(3);
-    // }
+    switch (a) {
+      case 'gather':
+        await handle('urls.perPage', 'guess');
+        await handle('scrape.concurrency', 3);
+        break;
+      case 'current':
+        await handle('urls.perPage', 'multiple');
+        await handle('scrape.concurrency', -1);
+        break;
+      case 'manual':
+        await handle('urls.perPage', 'guess');
+        await handle('scrape.concurrency', 3);
+        break;
+    }
   }
 
   const numResults = (job?.results?.targets || []).length;
@@ -341,7 +316,7 @@ https://www.example.com/page-2
       <div style={stepHeaderStyle}>What page do you want to scrape?</div>
 
       <pre>{JSON.stringify(job.urls, null, 2)}</pre>
-      <Pills value={job.urls.action} onChange={(val) => handle('urls.action', val)}>
+      <Pills value={job.urls.action} onChange={(val) => handleAction(val)}>
         <div key="current">Current Page Only</div>
         <div key="gather">Linked Pages</div>
         <div key="manual">Manually Enter URLs</div>
